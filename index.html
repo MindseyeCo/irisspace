@@ -52,7 +52,7 @@
 
  		 .title-font { font-family: var(--font-title); } 
 
- 		 .widget, .modal-pane, .timeline-item, .calendar-day, .day-detail-entry, .chat-bubble, .project-card, .note-item { 
+ 		 .widget, .modal-pane, .timeline-item, .calendar-day, .day-detail-entry, .chat-bubble, .project-card, .note-item, .setting-card { 
  			 backdrop-filter: blur(25px) saturate(150%); 
  			 -webkit-backdrop-filter: blur(25px) saturate(150%); 
  			 background-color: rgba(26, 26, 26, 0.7); 
@@ -69,7 +69,7 @@
  		 .modal-pane, .chat-bubble { animation: scaleIn 0.4s ease-out forwards; } 
 
  		 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } 
- 		 .widget, .timeline-item, .project-card, .note-item { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; animation-fill-mode: both; } 
+ 		 .widget, .timeline-item, .project-card, .note-item, .setting-card { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; animation-fill-mode: both; } 
 
  		 @keyframes iconPress { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.85); } } 
  		 .anim-press { animation: iconPress 0.3s ease-in-out; } 
@@ -93,7 +93,6 @@
  		 #ai-input-container.is-thinking #ai-input { animation: thinking-border 2s ease-in-out infinite; } 
  		 @keyframes thinking-border { 0%, 100% { border-color: var(--border-color); } 50% { border-color: var(--accent); box-shadow: var(--cyan-glow); } } 
 
- 		 /* Thinking Animation V2 */ 
  		 #ai-input-container #ai-actions > * { transition: opacity 0.3s, transform 0.3s; } 
  		 #ai-input-container.is-thinking #ai-actions > :not(#ai-thinking-icon) { opacity: 0; transform: scale(0.5); pointer-events: none; } 
  		 #ai-input-container:not(.is-thinking) #ai-thinking-icon { opacity: 0; transform: scale(0.5); pointer-events: none; } 
@@ -135,24 +134,28 @@
  		 .calendar-moment-dots { position: absolute; bottom: 8px; left: 8px; display: flex; gap: 4px; } 
  		 .calendar-moment-dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent); } 
 
- 		 /* Improved Timeline & Chat */ 
  		 .timeline-tag { background-color: var(--surface); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; } 
  		 .chat-bubble { max-width: 80%; width: fit-content; padding: 10px 15px; border-radius: 20px; } 
  		 .user-bubble { background-color: var(--accent); color: black; margin-left: auto; border-bottom-right-radius: 5px; } 
  		 .ai-bubble { background-color: var(--surface); border-bottom-left-radius: 5px; } 
 
- 		 /* Widget Config */ 
  		 .widget-config-btn { position: absolute; top: 4px; right: 4px; color: var(--text-secondary); opacity: 0.2; transition: all 0.3s; } 
  		 .widget:hover .widget-config-btn { opacity: 1; color: var(--text-primary); }
 
-         /* New Layout */
-         .nav-btn {
-            transition: all 0.3s ease;
-         }
-         .nav-btn.active {
-            color: var(--accent);
-            background-color: var(--surface);
-         }
+         .nav-btn { transition: all 0.3s ease; }
+         .nav-btn.active { color: var(--accent); background-color: var(--surface); }
+
+         .note-item { cursor: pointer; }
+         .project-card { cursor: pointer; }
+
+         /* Settings Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--surface); transition: .4s; border-radius: 24px; border: 1px solid var(--border-color)}
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-secondary); transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: black; }
+
  	 </style> 
  </head> 
  <body class="overflow-hidden"> 
@@ -163,6 +166,7 @@
  			 <header class="w-full p-4 flex justify-between items-center z-20 flex-shrink-0"> 
  				 <h1 class="title-font text-2xl font-bold text-white">Iris</h1> 
  				 <div class="flex items-center space-x-2"> 
+                     <button id="settings-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="settings"></i></button>
  					 <button id="widget-settings-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="layout-template"></i></button> 
  					 <button id="search-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="search"></i></button> 
  				 </div> 
@@ -174,6 +178,7 @@
  				 <div id="projects-view" class="page hidden"><div id="projects-container" class="space-y-4"></div></div>
  				 <div id="notes-view" class="page hidden"><div id="notes-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div></div>
  				 <div id="chat-view" class="page hidden flex flex-col h-full"><div id="chat-container" class="space-y-4 flex-grow overflow-y-auto"></div></div> 
+                 <div id="settings-view" class="page hidden"><div id="settings-container" class="space-y-4"></div></div>
  			 </main> 
  			 
  			 <div id="ai-input-container" class="w-full p-4 flex-shrink-0 z-10"> 
@@ -231,7 +236,8 @@
  		 <div id="widget-settings-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4"></div> 
  		 <div id="day-detail-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div> 
  		 <div id="widget-config-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div> 
-         <div id="permissions-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4"></div>
+         <div id="note-detail-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div>
+         <div id="project-detail-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div>
  	 </div> 
  	 </div> 
 
@@ -239,7 +245,7 @@
  		 // --- INITIALIZATION --- 
  		 const { jsPDF } = window.jspdf; 
  		 const DB_NAME = 'IrisSpaceDB', DB_VERSION = 9; 
- 		 const MOMENTS_STORE = 'moments', WIDGET_STORE = 'widgets', SETTINGS_STORE = 'settings', TASKS_STORE = 'tasks', CHAT_HISTORY_STORE = 'chatHistory', QUICK_NOTES_STORE = 'quickNotes', PROJECTS_STORE = 'projects', NOTES_STORE = 'notes'; 
+ 		 const MOMENTS_STORE = 'moments', WIDGET_STORE = 'widgets', SETTINGS_STORE = 'settings', TASKS_STORE = 'tasks', CHAT_HISTORY_STORE = 'chatHistory', PROJECTS_STORE = 'projects', NOTES_STORE = 'notes'; 
  		 const GEMINI_API_KEY = "AIzaSyAnmS4y8qRL-bquwc6FZbZ6OZFqrADgwx0";
  		 let db, aiImageBase64 = null, aiImageMimeType = null, currentCalendarDate = new Date(), pendingAICommand = null; 
  		 
@@ -251,10 +257,10 @@
  				 renderAllModals(); 
  				 setupEventListeners(); 
  				 setupSpeechRecognition(); 
-                 await checkAndRequestPermissions();
+                 await renderSettings();
  				 await refreshApp(); 
  				 showView('homescreen-view'); 
-                 setInterval(checkNotifications, 3600000); 
+                 setInterval(checkNotifications, 3600000); // Check every hour
  			 } catch (error) { console.error('Failed to initialize app:', error); } 
  		 }; 
 
@@ -277,7 +283,6 @@
                         taskStore.createIndex('createdAt', 'createdAt', { unique: false });
                      }
  					 if (!db.objectStoreNames.contains(CHAT_HISTORY_STORE)) db.createObjectStore(CHAT_HISTORY_STORE, { keyPath: 'id', autoIncrement: true }); 
-                     if (!db.objectStoreNames.contains(QUICK_NOTES_STORE)) db.createObjectStore(QUICK_NOTES_STORE, { keyPath: 'id' });
                      if (!db.objectStoreNames.contains(PROJECTS_STORE)) db.createObjectStore(PROJECTS_STORE, { keyPath: 'id', autoIncrement: true });
                      if (!db.objectStoreNames.contains(NOTES_STORE)) db.createObjectStore(NOTES_STORE, { keyPath: 'id', autoIncrement: true });
  				 }; 
@@ -293,7 +298,7 @@
 
  		 // --- CORE & UI --- 
  		 async function refreshApp() { 
- 			 await Promise.all([renderWidgets(), renderTimeline(), renderProjects(), renderNotes(), renderChatHistory()]); 
+ 			 await Promise.all([renderWidgets(), renderTimeline(), renderProjects(), renderNotes(), renderChatHistory(), renderSettings()]); 
  		 } 
  		 function showView(viewId) { 
  			 document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); 
@@ -302,6 +307,9 @@
  			 document.querySelectorAll('.nav-btn').forEach(btn => { 
                  btn.classList.toggle('active', btn.dataset.view === viewId);
  			 });
+             document.querySelectorAll('#header-btns button').forEach(btn => {
+                btn.classList.toggle('text-[var(--accent)]', btn.dataset.view === viewId);
+             });
  			 if (viewId === 'calendar-view') renderCalendar(currentCalendarDate); 
  		 } 
  		 function animateIcon(element) { if (!element) return; hapticFeedback('light'); element.classList.add('anim-press'); element.addEventListener('animationend', () => element.classList.remove('anim-press'), { once: true }); } 
@@ -382,12 +390,13 @@
 
  		 // --- MODAL RENDERING --- 
  		 function renderAllModals() { 
- 			 document.getElementById('search-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Search</h2><button id="close-search-modal" class="p-1"><i data-lucide="x"></i></button></div><div class="p-4 border-b border-[var(--border-color)]"><div class="relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]"></i><input type="text" id="search-input" placeholder="Search..." class="w-full bg-transparent pl-10 pr-4 py-2 rounded-lg focus:outline-none"></div></div><div id="search-results" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
- 			 document.getElementById('create-moment-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Create Moment</h2><button id="close-create-moment-modal" class="p-1"><i data-lucide="x"></i></button></div><div class="p-4 space-y-4"><div id="moment-image-preview-container" class="w-full flex justify-center mb-2"></div><div id="moment-audio-preview-container" class="w-full flex justify-center mb-2"></div><textarea id="moment-text-input" placeholder="What's on your mind?" class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea><input type="text" id="moment-tags-input" placeholder="Tags (comma separated)" class="w-full bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"><div class="flex justify-between items-center"><label for="moment-file-input" class="cursor-pointer p-2 rounded border border-[var(--border-color)] hover:border-[var(--accent)]"><i data-lucide="paperclip" class="inline"></i> Attach</label><input type="file" id="moment-file-input" class="hidden" accept="image/*,video/*"><button id="record-audio-btn" class="p-2 rounded border border-[var(--border-color)] hover:border-[var(--accent)] transition-all"><i data-lucide="mic" class="inline"></i> Record</button></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-moment-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
- 			 document.getElementById('widget-settings-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Manage Widgets</h2><button id="close-widget-settings-modal" class="p-1"><i data-lucide="x"></i></button></div><div class="flex-grow overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4"><div><h3 class="font-semibold mb-2">Active Widgets</h3><div id="active-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div><div><h3 class="font-semibold mb-2">Available Widgets</h3><div id="available-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widgets-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save & Close</button></div></div>`; 
- 			 document.getElementById('day-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="day-detail-title" class="title-font text-xl"></h2><button id="close-day-detail-modal" class="p-1"><i data-lucide="x"></i></button></div><div id="day-detail-content" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
- 			 document.getElementById('widget-config-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="widget-config-title" class="title-font text-xl"></h2><button id="close-widget-config-modal" class="p-1"><i data-lucide="x"></i></button></div><div id="widget-config-content" class="p-4 space-y-4"></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widget-config-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
- 			 document.getElementById('permissions-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col text-center"><div class="p-4"><i data-lucide="shield-check" class="w-12 h-12 mx-auto text-[var(--accent)]"></i><h2 class="title-font text-xl mt-4">Welcome to Iris</h2><p class="text-[var(--text-secondary)] text-sm mt-2">To enhance your experience, Iris can use your location for weather and your microphone for voice commands. Your data stays on your device.</p></div><div class="p-4 mt-2 border-t border-[var(--border-color)] flex justify-end gap-3"><button id="decline-permissions-btn" class="px-4 py-2 rounded font-semibold hover:bg-white/10 transition">Maybe Later</button><button id="grant-permissions-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Allow Access</button></div></div>`;
+ 			 document.getElementById('search-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Search</h2><button class="close-modal-btn p-1" data-modal="search-modal"><i data-lucide="x"></i></button></div><div class="p-4 border-b border-[var(--border-color)]"><div class="relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]"></i><input type="text" id="search-input" placeholder="Search moments, notes, projects..." class="w-full bg-transparent pl-10 pr-4 py-2 rounded-lg focus:outline-none"></div></div><div id="search-results" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
+ 			 document.getElementById('create-moment-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Create Moment</h2><button class="close-modal-btn p-1" data-modal="create-moment-modal"><i data-lucide="x"></i></button></div><div class="p-4 space-y-4"><div id="moment-image-preview-container" class="w-full flex justify-center mb-2"></div><div id="moment-audio-preview-container" class="w-full flex justify-center mb-2"></div><textarea id="moment-text-input" placeholder="What's on your mind?" class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea><input type="text" id="moment-tags-input" placeholder="Tags (comma separated)" class="w-full bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"><div class="flex justify-between items-center"><label for="moment-file-input" class="cursor-pointer p-2 rounded border border-[var(--border-color)] hover:border-[var(--accent)]"><i data-lucide="paperclip" class="inline"></i> Attach</label><input type="file" id="moment-file-input" class="hidden" accept="image/*,video/*"><button id="record-audio-btn" class="p-2 rounded border border-[var(--border-color)] hover:border-[var(--accent)] transition-all"><i data-lucide="mic" class="inline"></i> Record</button></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-moment-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
+ 			 document.getElementById('widget-settings-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Manage Widgets</h2><button class="close-modal-btn p-1" data-modal="widget-settings-modal"><i data-lucide="x"></i></button></div><div class="flex-grow overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4"><div><h3 class="font-semibold mb-2">Active Widgets</h3><div id="active-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div><div><h3 class="font-semibold mb-2">Available Widgets</h3><div id="available-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widgets-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save & Close</button></div></div>`; 
+ 			 document.getElementById('day-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="day-detail-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="day-detail-modal"><i data-lucide="x"></i></button></div><div id="day-detail-content" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
+ 			 document.getElementById('widget-config-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="widget-config-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="widget-config-modal"><i data-lucide="x"></i></button></div><div id="widget-config-content" class="p-4 space-y-4"></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widget-config-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
+ 			 document.getElementById('note-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Edit Note</h2><button class="close-modal-btn p-1" data-modal="note-detail-modal"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col"><textarea id="note-detail-textarea" class="w-full h-full flex-grow bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-note-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete</button><button id="save-note-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
+             document.getElementById('project-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="project-detail-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="project-detail-modal"><i data-lucide="x"></i></button></div><div id="project-detail-content" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`;
              lucide.createIcons(); 
  		 } 
  		 
@@ -401,38 +410,33 @@
  				 if (deleteBtn) deleteMoment(parseInt(deleteBtn.dataset.momentId, 10)); 
 
  				 const taskCheckbox = e.target.closest('.task-checkbox');  
- 				 if(taskCheckbox) toggleTaskCompletion(parseInt(taskCheckbox.dataset.taskId), taskCheckbox.checked); 
+ 				 if(taskCheckbox) {
+                    const taskId = parseInt(taskCheckbox.dataset.taskId);
+                    const projectId = taskCheckbox.dataset.projectId; // This will be undefined for non-project tasks
+                    toggleTaskCompletion(taskId, taskCheckbox.checked, projectId);
+                 }
 
  				 const widgetConfigBtn = e.target.closest('.widget-config-btn');  
- 				 if(widgetConfigBtn) openWidgetConfigModal(widgetConfigBtn.dataset.widgetId); 
+ 				 if(widgetConfigBtn) openWidgetConfigModal(widgetConfigBtn.dataset.widgetId);
 
- 				 if (e.target.id === 'enable-notifications-btn') { 
- 					 const permission = await Notification.requestPermission(); 
- 					 if (permission === 'granted') { 
- 						 new Notification('Iris Space', { body: 'Notifications have been enabled!' }); 
- 					 } 
- 					 await renderWidgets();  
- 				 } 
+                 const noteItem = e.target.closest('.note-item');
+                 if (noteItem) openNoteModal(parseInt(noteItem.dataset.noteId));
+
+                 const projectCard = e.target.closest('.project-card');
+                 if (projectCard) openProjectModal(parseInt(projectCard.dataset.projectId));
+
+                 const closeModalBtn = e.target.closest('.close-modal-btn');
+                 if(closeModalBtn) closeModal(closeModalBtn.dataset.modal);
  			 });
 
-            document.body.addEventListener('blur', async e => {
-                if (e.target && e.target.id === 'quick-note-textarea') {
-                    await dbAction(QUICK_NOTES_STORE, 'readwrite', store => store.put({ id: 'main', content: e.target.value }));
-                    hapticFeedback('light');
-                }
-            }, true);
+            document.getElementById('search-input').addEventListener('input', (e) => performSearch(e.target.value));
 
- 			 document.getElementById('search-btn').addEventListener('click', () => { showModal('search-modal'); hapticFeedback('light'); }); 
+ 			 document.getElementById('settings-btn').addEventListener('click', () => showView('settings-view')); 
+ 			 document.getElementById('search-btn').addEventListener('click', () => { showModal('search-modal'); hapticFeedback('light'); document.getElementById('search-input').focus(); }); 
  			 document.getElementById('create-moment-btn').addEventListener('click', () => { showModal('create-moment-modal'); hapticFeedback('medium'); }); 
  			 document.getElementById('widget-settings-btn').addEventListener('click', () => { showModal('widget-settings-modal'); populateWidgetModal(); hapticFeedback('light'); }); 
- 			 document.getElementById('modal-backdrop').addEventListener('click', () => { ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'day-detail-modal', 'widget-config-modal', 'permissions-modal'].forEach(closeModal); }); 
+ 			 document.getElementById('modal-backdrop').addEventListener('click', () => { ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'day-detail-modal', 'widget-config-modal', 'note-detail-modal', 'project-detail-modal'].forEach(closeModal); }); 
  			 
- 			 document.getElementById('close-search-modal').addEventListener('click', () => closeModal('search-modal')); 
- 			 document.getElementById('close-create-moment-modal').addEventListener('click', () => closeModal('create-moment-modal')); 
- 			 document.getElementById('close-day-detail-modal').addEventListener('click', () => closeModal('day-detail-modal')); 
- 			 document.getElementById('close-widget-settings-modal').addEventListener('click', () => closeModal('widget-settings-modal')); 
- 			 document.getElementById('close-widget-config-modal').addEventListener('click', () => closeModal('widget-config-modal')); 
-
  			 document.getElementById('save-moment-btn').addEventListener('click', () => saveMoment()); 
  			 document.getElementById('moment-file-input').addEventListener('change', handleMomentFileSelect); 
  			 document.getElementById('record-audio-btn').addEventListener('click', toggleAudioRecording); 
@@ -440,35 +444,69 @@
  			 document.getElementById('ai-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') processCommand(e.target.value); }); 
  			 document.getElementById('ai-send-btn').addEventListener('click', () => { processCommand(document.getElementById('ai-input').value); animateIcon(document.querySelector('#ai-send-btn i')); }); 
  			 document.getElementById('ai-file-input').addEventListener('change', handleAIFileSelect); 
-             document.getElementById('grant-permissions-btn').addEventListener('click', requestPermissions);
-             document.getElementById('decline-permissions-btn').addEventListener('click', () => { localStorage.setItem('permissionsRequested', 'true'); closeModal('permissions-modal'); });
  		 } 
 
- 		 // --- PERMISSIONS ---
-         async function checkAndRequestPermissions() {
-            if (!localStorage.getItem('permissionsRequested')) {
-                showModal('permissions-modal');
-            }
+ 		 // --- PERMISSIONS & SETTINGS ---
+         async function renderSettings() {
+            const container = document.getElementById('settings-container');
+            container.innerHTML = `<h2 class="title-font text-3xl font-bold mb-6">Settings</h2>`;
+            const notifPerm = 'Notification' in window ? Notification.permission : 'denied';
+            const locPerm = localStorage.getItem('locationPermission') || 'prompt';
+
+            const settings = [
+                { id: 'notifications', name: 'Task Reminders', desc: 'Get notified for tasks over 12 hours old.', status: notifPerm },
+                { id: 'location', name: 'Location Access', desc: 'Allow access to improve weather accuracy.', status: locPerm }
+            ];
+
+            settings.forEach((s, index) => {
+                const isChecked = s.status === 'granted';
+                const isDisabled = s.status === 'denied';
+                const card = document.createElement('div');
+                card.className = 'setting-card p-4 rounded-lg flex justify-between items-center';
+                card.style.animationDelay = `${index * 50}ms`;
+                card.innerHTML = `
+                    <div>
+                        <h3 class="font-semibold">${s.name} ${isDisabled ? '<span class="text-xs text-red-400">(Blocked)</span>' : ''}</h3>
+                        <p class="text-sm text-[var(--text-secondary)]">${s.desc}</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" class="permission-toggle" data-permission-type="${s.id}" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                `;
+                container.appendChild(card);
+            });
+
+            document.querySelectorAll('.permission-toggle').forEach(toggle => {
+                toggle.addEventListener('change', (e) => handlePermissionToggle(e.target.dataset.permissionType, e.target.checked));
+            });
          }
-         async function requestPermissions() {
-            // Geolocation
-            if ('geolocation' in navigator) {
-                try {
-                    await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject));
-                    localStorage.setItem('locationPermission', 'granted');
-                } catch (error) {
-                    console.error("Geolocation permission denied.", error);
+
+         async function handlePermissionToggle(type, enabled) {
+            if (type === 'notifications') {
+                if (enabled) {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') {
+                        document.querySelector('[data-permission-type="notifications"]').checked = false;
+                    }
+                } 
+            } else if (type === 'location') {
+                if (enabled) {
+                    if ('geolocation' in navigator) {
+                        try {
+                            await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 }));
+                            localStorage.setItem('locationPermission', 'granted');
+                        } catch (error) {
+                            console.error("Geolocation permission denied.", error);
+                            localStorage.setItem('locationPermission', 'denied');
+                            document.querySelector('[data-permission-type="location"]').checked = false;
+                        }
+                    }
+                } else {
                     localStorage.setItem('locationPermission', 'denied');
                 }
             }
-            // Microphone
-            try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (err) { console.error("Microphone permission denied."); }
-
-            localStorage.setItem('permissionsRequested', 'true');
-            closeModal('permissions-modal');
-            await renderWidgets(); // Re-render weather widget
+            await refreshApp();
          }
 
  		 // --- MOMENTS, MEDIA, CHAT --- 
@@ -490,7 +528,7 @@
                         audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const audioUrl = URL.createObjectURL(audioBlob);
                         document.getElementById('moment-audio-preview-container').innerHTML = `<audio controls src="${audioUrl}" class="w-full"></audio>`;
-                        stream.getTracks().forEach(track => track.stop()); // Release the mic
+                        stream.getTracks().forEach(track => track.stop());
                     };
                     mediaRecorder.start();
                     recordBtn.classList.add('is-recording');
@@ -498,7 +536,7 @@
                     lucide.createIcons();
                 } catch (err) {
                     console.error("Error accessing microphone:", err);
-                    showAIReply("Could not access the microphone. Please grant permission.");
+                    showAIReply("Could not access the microphone. Please grant permission in settings.");
                 }
             }
         } 
@@ -569,7 +607,7 @@
              const file = event.target.files[0];
              if (!file) return;
              momentImageBlob = file;
-             audioBlob = null; // Clear audio if file is selected
+             audioBlob = null; 
              document.getElementById('moment-audio-preview-container').innerHTML = '';
              const reader = new FileReader();
              reader.onload = (e) => {
@@ -689,11 +727,11 @@
              }},
  		 }; 
           async function getWeatherData() {
-            const OPENWEATHER_API_KEY = 'a5a2eab3f48a1b504990e5d0a133e9b0'; // Replace with a real key
+            const OPENWEATHER_API_KEY = 'a5a2eab3f48a1b504990e5d0a133e9b0';
             if (localStorage.getItem('locationPermission') !== 'granted') return 'denied';
 
             try {
-                const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject));
+                const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 }));
                 const { latitude, longitude } = position.coords;
                 const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=imperial`);
                 if(!response.ok) throw new Error('Weather API failed');
@@ -734,14 +772,22 @@
  			 lucide.createIcons(); 
  			 if (grid.children.length > 0) Sortable.create(grid, { animation: 150, ghostClass: 'sortable-ghost', onEnd: saveWidgetOrder }); 
  		 } 
- 		 async function toggleTaskCompletion(taskId, isCompleted) {
-            const task = await dbAction(TASKS_STORE, 'readonly', store => store.get(taskId));
-            if (task) {
-                const updatedTask = { ...task, completed: isCompleted };
-                await dbAction(TASKS_STORE, 'readwrite', store => store.put(updatedTask));
-                await renderWidgets();
-                await renderProjects();
+ 		 async function toggleTaskCompletion(taskId, isCompleted, projectId = null) {
+            if (projectId) {
+                const project = await dbAction(PROJECTS_STORE, 'readonly', store => store.get(parseInt(projectId)));
+                if (project) {
+                    const task = project.tasks.find(t => t.id === taskId);
+                    if(task) task.completed = isCompleted;
+                    await dbAction(PROJECTS_STORE, 'readwrite', store => store.put(project));
+                }
+            } else {
+                 const task = await dbAction(TASKS_STORE, 'readonly', store => store.get(taskId));
+                if (task) {
+                    const updatedTask = { ...task, completed: isCompleted };
+                    await dbAction(TASKS_STORE, 'readwrite', store => store.put(updatedTask));
+                }
             }
+            await refreshApp();
          } 
  		 async function populateWidgetModal() { 
  			 const activeList = document.getElementById('active-widgets-list'); 
@@ -855,19 +901,23 @@
 
  			 const systemPrompt = `You are Iris, an AI assistant. The current date is ${new Date().toLocaleDateString()}. Your goal is to interpret commands and respond in JSON.
 Intents:
-- 'create_task': For creating one or more tasks. 'details' should contain a 'tasks' array of strings.
-- 'delete_task': For removing a task. 'details' contains the 'text' of the task.
-- 'create_note': For timeline entries. 'details' contains 'full_response'.
+- 'create_task': For creating one or more tasks. 'details' should contain a 'tasks' array of strings and a 'short_reply'.
+- 'delete_task': For removing a task. 'details' contains the 'text' of the task and a 'short_reply'.
+- 'create_note': For timeline entries. 'details' contains 'full_response' and a 'short_reply'.
+- 'create_grid_note': For grid notes. 'details' contains 'full_response' and a 'short_reply'.
+- 'create_project': For new projects. 'details' contains the 'name' of the project and a 'short_reply'.
 - 'general_query': For questions. 'details' contains 'full_response' and a 'short_reply'.
-- 'clarification': If the user's request is ambiguous. 'details' contains a 'question' and an array of 'quick_replies' (e.g., ["Yes", "No"]).
-- Other intents: 'set_reminder', 'set_countdown', 'export_data', 'create_project', 'add_task_to_project', 'create_grid_note'.
+- 'clarification': If the user's request is ambiguous. 'details' contains a 'question' and an array of 'quick_replies'.
+- Other intents: 'set_reminder', 'set_countdown', 'export_data', 'add_task_to_project'.
 
 Examples:
-- User: "remind me to take out the trash at 5pm" -> {"intent": "set_reminder", "details": {"text": "take out the trash", "time": "17:00"}}
+- User: "remind me to take out the trash at 5pm" -> {"intent": "set_reminder", "details": {"text": "take out the trash", "time": "17:00", "short_reply": "Reminder set for 5pm."}}
 - User: "add buy milk and walk the dog to my list" -> {"intent": "create_task", "details": {"tasks": ["buy milk", "walk the dog"], "short_reply": "I've added 2 tasks."}}
+- User: "create a project for the new marketing campaign" -> {"intent": "create_project", "details": {"name": "New Marketing Campaign", "short_reply": "Project 'New Marketing Campaign' created."}}
+- User: "make a note that we should focus on video content" -> {"intent": "create_grid_note", "details": {"full_response": "Focus on video content for the next quarter.", "short_reply": "I've added that to your notes."}}
 - User: "was that meeting at 5 or 6?" -> {"intent": "clarification", "details": {"question": "Just to confirm, are you asking about the project sync meeting?", "quick_replies": ["Yes, that's the one", "No, a different meeting"]}}
 
-Respond ONLY with the JSON object.`;
+Respond ONLY with the JSON object. Do not add any text before or after the JSON object.`;
  
  			 let parts = [{ "text": commandText }];
              if (aiImageBase64 && aiImageMimeType) {
@@ -933,7 +983,7 @@ Respond ONLY with the JSON object.`;
                     else { showAIReply("Sorry, I missed the details for the reminder."); }
                     break; 
  				 case 'create_note': 
-                    if (details?.full_response) { saveMoment(true, details.full_response); showAIReply("I've saved that as a moment."); }
+                    if (details?.full_response) { saveMoment(true, details.full_response); showAIReply(details.short_reply || "I've saved that as a moment."); }
                     else { showAIReply("Sorry, I didn't get the content for the note."); }
                     break; 
  				 case 'general_query': 
@@ -954,7 +1004,7 @@ Respond ONLY with the JSON object.`;
                     break; 
                  case 'export_data': exportToPDF(); break;
                  case 'create_project': 
-                    if (details?.name) { createProject(details.name); }
+                    if (details?.name) { createProject(details.name); showAIReply(details.short_reply || `Project "${details.name}" created.`);}
                     else { showAIReply("What should I name the project?"); }
                     break;
                  case 'add_task_to_project':
@@ -962,7 +1012,7 @@ Respond ONLY with the JSON object.`;
                     else { showAIReply("I need a project name and a task to add."); }
                     break;
                  case 'create_grid_note':
-                    if (details?.full_response) { createGridNote(details.full_response); }
+                    if (details?.full_response) { createGridNote(details.full_response); showAIReply(details.short_reply || 'Note added to your grid.'); }
                     else { showAIReply("What should the note say?"); }
                     break;
  				 default: showAIReply("I didn't understand that command."); 
@@ -1021,20 +1071,6 @@ Respond ONLY with the JSON object.`;
                     await dbAction(TASKS_STORE, 'readwrite', store => store.put(updatedTask));
                 }
             });
-
-            const lastEventCheck = localStorage.getItem('lastEventCheck');
-            const todayStr = new Date().toDateString();
-            if (lastEventCheck !== todayStr) {
-                const moments = await dbAction(MOMENTS_STORE, 'readonly', store => store.getAll());
-                const todayMomentsCount = moments.filter(m => new Date(m.timestamp).toDateString() === todayStr).length;
-                if (todayMomentsCount > 0) {
-                     new Notification('Iris Space: Daily Brief', {
-                        body: `You have ${todayMomentsCount} moment${todayMomentsCount > 1 ? 's' : ''} recorded for today.`,
-                        icon: 'https://placehold.co/192x192/0891b2/ffffff?text=IS'
-                    });
-                }
-                localStorage.setItem('lastEventCheck', todayStr);
-            }
         }
 
         // --- EXPORT ---
@@ -1106,6 +1142,7 @@ Respond ONLY with the JSON object.`;
                 const progress = p.tasks.length > 0 ? (completedTasks / p.tasks.length) * 100 : 0;
                 const card = document.createElement('div');
                 card.className = 'project-card p-4 rounded-lg';
+                card.dataset.projectId = p.id;
                 card.style.animationDelay = `${index * 50}ms`;
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
@@ -1113,14 +1150,6 @@ Respond ONLY with the JSON object.`;
                         <span class="text-sm font-semibold">${Math.round(progress)}%</span>
                     </div>
                     <div class="w-full bg-black/20 rounded-full h-2 my-3"><div class="bg-[var(--accent)] h-2 rounded-full" style="width: ${progress}%"></div></div>
-                    <div class="space-y-2 mt-3">
-                        ${p.tasks.map(t => `
-                            <div class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" data-task-id="${t.id}" class="task-checkbox accent-[var(--accent)]" ${t.completed ? 'checked' : ''}>
-                                <label class="${t.completed ? 'line-through text-[var(--text-secondary)]' : ''}">${t.text}</label>
-                            </div>
-                        `).join('')}
-                    </div>
                 `;
                 container.appendChild(card);
             });
@@ -1140,6 +1169,7 @@ Respond ONLY with the JSON object.`;
             notes.forEach((note, index) => {
                 const item = document.createElement('div');
                 item.className = 'note-item p-4 rounded-lg min-h-[150px]';
+                item.dataset.noteId = note.id;
                 item.style.animationDelay = `${index * 50}ms`;
                 item.innerHTML = `<p class="text-sm whitespace-pre-wrap">${note.content}</p>`;
                 container.appendChild(item);
@@ -1149,7 +1179,6 @@ Respond ONLY with the JSON object.`;
         async function createProject(name) {
             await dbAction(PROJECTS_STORE, 'readwrite', store => store.add({ name, tasks: [] }));
             await refreshApp();
-            showAIReply(`Project "${name}" created.`);
             showView('projects-view');
         }
 
@@ -1157,7 +1186,7 @@ Respond ONLY with the JSON object.`;
             const projects = await dbAction(PROJECTS_STORE, 'readonly', store => store.getAll());
             const project = projects.find(p => p.name.toLowerCase() === projectName.toLowerCase());
             if (project) {
-                const newTask = { id: Date.now(), text: taskText, completed: false }; // Use timestamp for unique-ish ID
+                const newTask = { id: Date.now(), text: taskText, completed: false }; 
                 project.tasks.push(newTask);
                 await dbAction(PROJECTS_STORE, 'readwrite', store => store.put(project));
                 await refreshApp();
@@ -1171,11 +1200,77 @@ Respond ONLY with the JSON object.`;
         async function createGridNote(content) {
             await dbAction(NOTES_STORE, 'readwrite', store => store.add({ content, timestamp: Date.now() }));
             await refreshApp();
-            showAIReply('Note added to your grid.');
             showView('notes-view');
         }
  		 async function renderCalendar(date) {} 
  		 async function openDayModal(dateISO) {} 
+
+         async function performSearch(query) {
+            const resultsContainer = document.getElementById('search-results');
+            if (!query || query.length < 2) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            const lowerQuery = query.toLowerCase();
+            const [moments, notes, projects] = await Promise.all([
+                dbAction(MOMENTS_STORE, 'readonly', store => store.getAll()),
+                dbAction(NOTES_STORE, 'readonly', store => store.getAll()),
+                dbAction(PROJECTS_STORE, 'readonly', store => store.getAll())
+            ]);
+            let resultsHTML = '';
+            moments.filter(m => m.text?.toLowerCase().includes(lowerQuery) || m.tags?.some(t => t.toLowerCase().includes(lowerQuery))).forEach(m => {
+                resultsHTML += `<div class="p-3 bg-black/20 rounded-lg"><p class="font-bold text-sm">Moment</p><p class="text-xs text-[var(--text-secondary)]">${m.text.substring(0,100)}...</p></div>`;
+            });
+            notes.filter(n => n.content.toLowerCase().includes(lowerQuery)).forEach(n => {
+                resultsHTML += `<div class="p-3 bg-black/20 rounded-lg"><p class="font-bold text-sm">Note</p><p class="text-xs text-[var(--text-secondary)]">${n.content.substring(0,100)}...</p></div>`;
+            });
+            projects.filter(p => p.name.toLowerCase().includes(lowerQuery)).forEach(p => {
+                resultsHTML += `<div class="p-3 bg-black/20 rounded-lg"><p class="font-bold text-sm">Project</p><p class="text-xs text-[var(--text-secondary)]">${p.name}</p></div>`;
+            });
+
+            resultsContainer.innerHTML = resultsHTML || `<p class="text-center text-sm text-[var(--text-secondary)]">No results found.</p>`;
+         }
+
+         async function openNoteModal(noteId) {
+            const note = await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId));
+            if (!note) return;
+            document.getElementById('note-detail-textarea').value = note.content;
+            document.getElementById('save-note-btn').onclick = () => saveNote(noteId);
+            document.getElementById('delete-note-btn').onclick = () => deleteNote(noteId);
+            showModal('note-detail-modal');
+         }
+
+         async function saveNote(noteId) {
+            const newContent = document.getElementById('note-detail-textarea').value;
+            const note = await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId));
+            if(note) {
+                const updatedNote = { ...note, content: newContent };
+                await dbAction(NOTES_STORE, 'readwrite', store => store.put(updatedNote));
+                closeModal('note-detail-modal');
+                await renderNotes();
+            }
+         }
+
+         async function deleteNote(noteId) {
+            await dbAction(NOTES_STORE, 'readwrite', store => store.delete(noteId));
+            closeModal('note-detail-modal');
+            await renderNotes();
+         }
+
+         async function openProjectModal(projectId) {
+            const project = await dbAction(PROJECTS_STORE, 'readonly', store => store.get(projectId));
+            if (!project) return;
+            document.getElementById('project-detail-title').textContent = project.name;
+            const contentEl = document.getElementById('project-detail-content');
+            contentEl.innerHTML = project.tasks.map(t => `
+                <div class="flex items-center gap-2 text-sm p-2 rounded-md hover:bg-white/5">
+                    <input type="checkbox" data-task-id="${t.id}" data-project-id="${projectId}" class="task-checkbox accent-[var(--accent)]" ${t.completed ? 'checked' : ''}>
+                    <label class="${t.completed ? 'line-through text-[var(--text-secondary)]' : ''}">${t.text}</label>
+                </div>
+            `).join('');
+            lucide.createIcons();
+            showModal('project-detail-modal');
+         }
  	 </script> 
  </body> 
  </html>
