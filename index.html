@@ -24,6 +24,8 @@
  		 
  		 :root { 
  			 --cyan-glow: 0 0 8px rgba(34, 211, 238, 0.6), 0 0 16px rgba(34, 211, 238, 0.4), 0 0 24px rgba(34, 211, 238, 0.2); 
+             --accent: #22D3EE; 
+ 			 --accent-light: #A5F3FC;
  		 } 
 
  		 .dark { 
@@ -32,8 +34,6 @@
  			 --surface: #1A1A1A; 
  			 --text-primary: #E0E0E0; 
  			 --text-secondary: #A0A0A0; 
- 			 --accent: #22D3EE; 
- 			 --accent-light: #A5F3FC; 
  			 --border-color: #2A2A2A; 
  			 --font-body: 'Sora', sans-serif; 
  			 --font-title: 'Playfair Display', serif; 
@@ -142,14 +142,15 @@
 
          #dynamic-add-btn { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* Settings Toggle Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--surface); transition: .4s; border-radius: 24px; border: 1px solid var(--border-color)}
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-secondary); transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(20px); background-color: black; }
-
+        
+        .theme-swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
+        .theme-swatch.active { border-color: white; }
  	 </style> 
  </head> 
  <body class="overflow-hidden"> 
@@ -174,6 +175,8 @@
  				 <div id="notes-view" class="page hidden"><div id="notes-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div></div>
  				 <div id="chat-view" class="page hidden flex flex-col h-full"><div id="chat-container" class="space-y-4 flex-grow overflow-y-auto"></div></div> 
                  <div id="settings-view" class="page hidden"><div id="settings-container" class="space-y-4"></div></div>
+                 <div id="note-detail-view" class="page hidden"></div>
+                 <div id="project-detail-view" class="page hidden"></div>
  			 </main> 
  			 
  			 <div id="ai-input-container" class="w-full p-4 flex-shrink-0 z-10"> 
@@ -225,25 +228,21 @@
  		 <div id="search-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div> 
  		 <div id="create-moment-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div> 
  		 <div id="widget-settings-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4"></div> 
- 		 <div id="day-detail-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div> 
  		 <div id="widget-config-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div> 
-         <div id="note-detail-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div>
-         <div id="project-detail-modal" class="hidden fixed inset-0 flex flex-col items-center justify-center z-50 p-4"></div>
  	 </div> 
  	 </div> 
 
  	 <script type="module"> 
  		 // --- INITIALIZATION --- 
  		 const { jsPDF } = window.jspdf; 
- 		 const DB_NAME = 'IrisSpaceDB', DB_VERSION = 10; 
- 		 const MOMENTS_STORE = 'moments', WIDGET_STORE = 'widgets', SETTINGS_STORE = 'settings', TASKS_STORE = 'tasks', CHAT_HISTORY_STORE = 'chatHistory', PROJECTS_STORE = 'projects', NOTES_STORE = 'notes'; 
+ 		 const DB_NAME = 'IrisSpaceDB', DB_VERSION = 11; 
+ 		 const MOMENTS_STORE = 'moments', WIDGET_STORE = 'widgets', SETTINGS_STORE = 'settings', TASKS_STORE = 'tasks', CHAT_HISTORY_STORE = 'chatHistory', PROJECTS_STORE = 'projects', NOTES_STORE = 'notes', QUICK_NOTES_STORE = 'quickNotes'; 
  		 
-         // IMPORTANT: Replace with your actual Google API Credentials
          const GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY_HERE";
          const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com";
  		 const GEMINI_API_KEY = "AIzaSyAnmS4y8qRL-bquwc6FZbZ6OZFqrADgwx0";
 
- 		 let db, aiImageBase64 = null, aiImageMimeType = null, currentCalendarDate = new Date(), pendingAICommand = null; 
+ 		 let db, aiImageBase64 = null, aiImageMimeType = null, pendingAICommand = null; 
  		 let conversationHistory = [];
          let gapiInited = false, gsiInited = false, tokenClient;
  		 
@@ -256,6 +255,7 @@
  				 setupEventListeners(); 
  				 setupSpeechRecognition(); 
                  handleClientLoad(); // Init Google Services
+                 await applyTheme();
  				 await refreshApp(); 
  				 showView('homescreen-view'); 
                  setInterval(checkNotifications, 3600000); // Check every hour
@@ -286,6 +286,7 @@
                         projectStore.createIndex('name', 'name', { unique: false });
                      }
                      if (!db.objectStoreNames.contains(NOTES_STORE)) db.createObjectStore(NOTES_STORE, { keyPath: 'id', autoIncrement: true });
+                     if (!db.objectStoreNames.contains(QUICK_NOTES_STORE)) db.createObjectStore(QUICK_NOTES_STORE, { keyPath: 'id' });
  				 }; 
  			 }); 
  		 } 
@@ -379,10 +380,7 @@
  			 document.getElementById('search-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Search</h2><button class="close-modal-btn p-1" data-modal="search-modal"><i data-lucide="x"></i></button></div><div class="p-4 border-b border-[var(--border-color)]"><div class="relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]"></i><input type="text" id="search-input" placeholder="Search moments, notes, projects..." class="w-full bg-transparent pl-10 pr-4 py-2 rounded-lg focus:outline-none"></div></div><div id="search-results" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
  			 document.getElementById('create-moment-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Create Moment</h2><button class="close-modal-btn p-1" data-modal="create-moment-modal"><i data-lucide="x"></i></button></div><div class="p-4 space-y-4"><div id="moment-image-preview-container" class="w-full flex justify-center mb-2"></div><div id="moment-audio-preview-container" class="w-full flex justify-center mb-2"></div><textarea id="moment-text-input" placeholder="What's on your mind?" class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea><input type="text" id="moment-tags-input" placeholder="Tags (comma separated)" class="w-full bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"><div class="flex justify-between items-center"><label for="moment-file-input" class="cursor-pointer p-2 rounded border border-[var(--border-color)] hover:border-[var(--accent)]"><i data-lucide="paperclip" class="inline"></i> Attach</label><input type="file" id="moment-file-input" class="hidden" accept="image/*,video/*"><button id="record-audio-btn" class="p-2 rounded border border-[var(--border-color)] hover:border-[var(--accent)] transition-all"><i data-lucide="mic" class="inline"></i> Record</button></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-moment-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
  			 document.getElementById('widget-settings-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Manage Widgets</h2><button class="close-modal-btn p-1" data-modal="widget-settings-modal"><i data-lucide="x"></i></button></div><div class="flex-grow overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4"><div><h3 class="font-semibold mb-2">Active Widgets</h3><div id="active-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div><div><h3 class="font-semibold mb-2">Available Widgets</h3><div id="available-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widgets-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save & Close</button></div></div>`; 
- 			 document.getElementById('day-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="day-detail-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="day-detail-modal"><i data-lucide="x"></i></button></div><div id="day-detail-content" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
  			 document.getElementById('widget-config-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="widget-config-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="widget-config-modal"><i data-lucide="x"></i></button></div><div id="widget-config-content" class="p-4 space-y-4"></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widget-config-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
- 			 document.getElementById('note-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="note-detail-title" class="title-font text-xl">Note</h2><button class="close-modal-btn p-1" data-modal="note-detail-modal"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col"><textarea id="note-detail-textarea" class="w-full h-full flex-grow bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-note-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete</button><button id="save-note-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
-             document.getElementById('project-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><input id="project-detail-title-input" class="title-font text-xl bg-transparent focus:outline-none w-full" value="Project Title"><button class="close-modal-btn p-1" data-modal="project-detail-modal"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col gap-4"><textarea id="project-detail-desc" placeholder="Add a description..." class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)] text-sm"></textarea><div id="project-detail-tasks" class="flex-grow overflow-y-auto space-y-2"></div></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-project-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete Project</button><button id="save-project-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
              lucide.createIcons(); 
  		 } 
  		 
@@ -406,13 +404,19 @@
  				 if(widgetConfigBtn) openWidgetConfigModal(widgetConfigBtn.dataset.widgetId);
 
                  const noteItem = e.target.closest('.note-item');
-                 if (noteItem) openNoteModal(parseInt(noteItem.dataset.noteId));
+                 if (noteItem) openNoteView(parseInt(noteItem.dataset.noteId));
 
                  const projectCard = e.target.closest('.project-card');
-                 if (projectCard) openProjectModal(parseInt(projectCard.dataset.projectId));
+                 if (projectCard) openProjectView(parseInt(projectCard.dataset.projectId));
 
                  const closeModalBtn = e.target.closest('.close-modal-btn');
                  if(closeModalBtn) closeModal(closeModalBtn.dataset.modal);
+
+                 const searchResultItem = e.target.closest('.search-result-item');
+                 if(searchResultItem) handleSearchResultClick(searchResultItem.dataset);
+
+                 const themeSwatch = e.target.closest('.theme-swatch');
+                 if(themeSwatch) saveTheme(themeSwatch.dataset.color);
  			 });
 
             document.getElementById('search-input').addEventListener('input', (e) => performSearch(e.target.value));
@@ -421,7 +425,7 @@
  			 document.getElementById('search-btn').addEventListener('click', () => { showModal('search-modal'); hapticFeedback('light'); document.getElementById('search-input').focus(); }); 
  			 document.getElementById('dynamic-add-btn').addEventListener('click', handleDynamicAdd);
  			 document.getElementById('widget-settings-btn').addEventListener('click', () => { showModal('widget-settings-modal'); populateWidgetModal(); hapticFeedback('light'); }); 
- 			 document.getElementById('modal-backdrop').addEventListener('click', () => { ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'day-detail-modal', 'widget-config-modal', 'note-detail-modal', 'project-detail-modal'].forEach(closeModal); }); 
+ 			 document.getElementById('modal-backdrop').addEventListener('click', () => { ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'widget-config-modal'].forEach(closeModal); }); 
  			 
  			 document.getElementById('save-moment-btn').addEventListener('click', () => saveMoment()); 
  			 document.getElementById('moment-file-input').addEventListener('change', handleMomentFileSelect); 
@@ -441,7 +445,7 @@
             const currentView = document.querySelector('.page:not(.hidden)').id;
             switch(currentView) {
                 case 'notes-view':
-                    openNoteModal(null); // Open modal for new note
+                    openNoteView(null); // Open view for new note
                     break;
                 case 'projects-view':
                     document.getElementById('ai-input').focus();
@@ -468,14 +472,11 @@
                 { id: 'location', name: 'Location Access', desc: 'Allow access to improve weather accuracy.', status: locPerm },
                 { id: 'google', name: 'Google Calendar', desc: googleToken ? 'Connected. Tasks will sync.' : 'Connect to sync tasks and events.', status: googleToken ? 'granted' : 'prompt' }
             ];
-
-            settings.forEach((s, index) => {
+            
+            let settingsHTML = settings.map((s, index) => {
                 const isChecked = s.status === 'granted';
                 const isDisabled = s.status === 'denied';
-                const card = document.createElement('div');
-                card.className = 'setting-card p-4 rounded-lg flex justify-between items-center';
-                card.style.animationDelay = `${index * 50}ms`;
-                card.innerHTML = `
+                return `<div class="setting-card p-4 rounded-lg flex justify-between items-center" style="animation-delay: ${index * 50}ms">
                     <div>
                         <h3 class="font-semibold">${s.name} ${isDisabled ? '<span class="text-xs text-red-400">(Blocked)</span>' : ''}</h3>
                         <p class="text-sm text-[var(--text-secondary)]">${s.desc}</p>
@@ -484,9 +485,19 @@
                         <input type="checkbox" class="permission-toggle" data-permission-type="${s.id}" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
                         <span class="slider"></span>
                     </label>
-                `;
-                container.appendChild(card);
-            });
+                </div>`;
+            }).join('');
+
+            const themes = [ {name: 'Cyan', color: '#22D3EE'}, {name: 'Rose', color: '#F43F5E'}, {name: 'Amber', color: '#F59E0B'}, {name: 'Lime', color: '#84CC16'}];
+            const currentTheme = localStorage.getItem('themeColor') || '#22D3EE';
+            settingsHTML += `<div class="setting-card p-4 rounded-lg" style="animation-delay: ${settings.length * 50}ms">
+                <h3 class="font-semibold mb-3">Theme Color</h3>
+                <div class="flex items-center gap-4">
+                    ${themes.map(t => `<div class="theme-swatch ${currentTheme === t.color ? 'active' : ''}" data-color="${t.color}" style="background-color: ${t.color}"></div>`).join('')}
+                </div>
+            </div>`;
+
+            container.innerHTML += settingsHTML;
 
             document.querySelectorAll('.permission-toggle').forEach(toggle => {
                 toggle.addEventListener('change', (e) => handlePermissionToggle(e.target.dataset.permissionType, e.target.checked));
@@ -524,6 +535,17 @@
                 }
             }
             await refreshApp();
+         }
+
+         async function saveTheme(color) {
+            localStorage.setItem('themeColor', color);
+            await applyTheme();
+            await renderSettings(); // Re-render to update active swatch
+         }
+
+         async function applyTheme() {
+            const color = localStorage.getItem('themeColor') || '#22D3EE';
+            document.documentElement.style.setProperty('--accent', color);
          }
 
  		 // --- MOMENTS, MEDIA, CHAT --- 
@@ -755,25 +777,13 @@
                     }).join('')}
                 </div>`
              }},
- 			 countdown: { name: "Countdown", configurable: true, render: async () => {
-                const countdown = await dbAction(SETTINGS_STORE, 'readonly', store => store.get('countdown'));
-                if (!countdown || !countdown.date) return `<div class="text-sm text-[var(--text-secondary)]">Set a countdown</div>`;
-                const targetDate = new Date(countdown.date);
-                const diff = targetDate - new Date();
-                if (diff <= 0) return `<div class="text-lg font-bold">${countdown.event} has arrived!</div>`;
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                return `<div class="text-center">
-                    <div class="text-3xl font-bold">${days}d ${hours}h</div>
-                    <div class="text-sm">${countdown.event}</div>
-                </div>`
-             }}, 
-             notesGrid: { name: "Notes Grid", size: 'col-span-2', render: async () => {
-                 const notes = await dbAction(NOTES_STORE, 'readonly', store => store.getAll());
-                 if (notes.length === 0) return `<p class="text-sm text-[var(--text-secondary)]">No notes yet.</p>`;
-                 return `<div class="grid grid-cols-2 gap-2 w-full h-full">
-                    ${notes.slice(0,4).map(note => `<div class="bg-black/20 p-2 rounded-lg text-xs overflow-hidden">${note.content.substring(0, 50)}${note.content.length > 50 ? '...' : ''}</div>`).join('')}
-                 </div>`
+ 			 quickNote: { name: "Quick Note", size: 'col-span-2', render: async () => {
+                const note = await dbAction(QUICK_NOTES_STORE, 'readonly', store => store.get('main')) || {content: ''};
+                return `<textarea id="quick-note-textarea" class="w-full h-full bg-transparent text-sm p-2 focus:outline-none resize-none" placeholder="Jot something down...">${note.content}</textarea>`;
+             }},
+             dailyFocus: { name: "Daily Focus", render: async () => {
+                const focus = await dbAction(SETTINGS_STORE, 'readonly', store => store.get('dailyFocus')) || { text: '' };
+                return `<input type="text" id="daily-focus-input" value="${focus.text}" placeholder="What's your focus today?" class="w-full bg-transparent text-center font-semibold text-lg focus:outline-none">`;
              }},
  		 }; 
           async function getWeatherData() {
@@ -829,7 +839,10 @@
                     }
                 })
              }
- 			 if (grid.children.length > 0) Sortable.create(grid, { animation: 150, ghostClass: 'sortable-ghost', onEnd: saveWidgetOrder }); 
+             const dailyFocusInput = document.getElementById('daily-focus-input');
+             if(dailyFocusInput) {
+                dailyFocusInput.addEventListener('blur', e => dbAction(SETTINGS_STORE, 'readwrite', store => store.put({ key: 'dailyFocus', text: e.target.value })))
+             }
  		 } 
  		 async function toggleTaskCompletion(taskId, isCompleted, projectId = null) {
             if (projectId) {
@@ -874,12 +887,7 @@
             await renderWidgets();
             hapticFeedback('medium');
          } 
- 		 async function saveWidgetOrder(evt) { 
-            const grid = document.getElementById('widget-grid');
-            const newOrder = [...grid.children].map(widget => widget.dataset.widgetId);
-            await dbAction(WIDGET_STORE, 'readwrite', store => store.put({ id: 'layout', value: newOrder }));
-            await renderWidgets(); 
-         } 
+
  		 async function openWidgetConfigModal(widgetId) {
             const titleEl = document.getElementById('widget-config-title');
             const contentEl = document.getElementById('widget-config-content');
@@ -1290,8 +1298,6 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
             await refreshApp();
             showView('notes-view');
         }
- 		 async function renderCalendar(date) {} 
- 		 async function openDayModal(dateISO) {} 
 
          async function performSearch(query) {
             const resultsContainer = document.getElementById('search-results');
@@ -1307,31 +1313,39 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
             ]);
             let resultsHTML = '';
             moments.filter(m => m.text?.toLowerCase().includes(lowerQuery) || m.tags?.some(t => t.toLowerCase().includes(lowerQuery))).forEach(m => {
-                resultsHTML += `<div class="p-3 bg-black/20 rounded-lg"><p class="font-bold text-sm">Moment</p><p class="text-xs text-[var(--text-secondary)]">${m.text.substring(0,100)}...</p></div>`;
+                resultsHTML += `<div class="search-result-item p-3 bg-black/20 rounded-lg cursor-pointer" data-type="moment" data-id="${m.id}"><p class="font-bold text-sm">Moment</p><p class="text-xs text-[var(--text-secondary)]">${m.text.substring(0,100)}...</p></div>`;
             });
             notes.filter(n => n.content.toLowerCase().includes(lowerQuery)).forEach(n => {
-                resultsHTML += `<div class="p-3 bg-black/20 rounded-lg"><p class="font-bold text-sm">Note</p><p class="text-xs text-[var(--text-secondary)]">${n.content.substring(0,100)}...</p></div>`;
+                resultsHTML += `<div class="search-result-item p-3 bg-black/20 rounded-lg cursor-pointer" data-type="note" data-id="${n.id}"><p class="font-bold text-sm">Note</p><p class="text-xs text-[var(--text-secondary)]">${n.content.substring(0,100)}...</p></div>`;
             });
             projects.filter(p => p.name.toLowerCase().includes(lowerQuery)).forEach(p => {
-                resultsHTML += `<div class="p-3 bg-black/20 rounded-lg"><p class="font-bold text-sm">Project</p><p class="text-xs text-[var(--text-secondary)]">${p.name}</p></div>`;
+                resultsHTML += `<div class="search-result-item p-3 bg-black/20 rounded-lg cursor-pointer" data-type="project" data-id="${p.id}"><p class="font-bold text-sm">Project</p><p class="text-xs text-[var(--text-secondary)]">${p.name}</p></div>`;
             });
 
             resultsContainer.innerHTML = resultsHTML || `<p class="text-center text-sm text-[var(--text-secondary)]">No results found.</p>`;
          }
 
-         async function openNoteModal(noteId) {
-            const titleEl = document.getElementById('note-detail-title');
-            titleEl.textContent = noteId ? "Edit Note" : "Create Note";
+         function handleSearchResultClick(dataset) {
+            const { type, id } = dataset;
+            closeModal('search-modal');
+            if (type === 'note') openNoteView(parseInt(id));
+            if (type === 'project') openProjectView(parseInt(id));
+            if (type === 'moment') showView('timeline-view'); // Simple navigation for now
+         }
 
-            const note = noteId ? await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId)) : { content: '' };
+         async function openNoteView(noteId) {
+            const view = document.getElementById('note-detail-view');
+            const isNew = noteId === null;
+            const note = isNew ? { content: '', id: null } : await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId));
             if (!note) return;
 
-            document.getElementById('note-detail-textarea').value = note.content;
-            document.getElementById('save-note-btn').onclick = () => saveNote(noteId);
-            document.getElementById('delete-note-btn').onclick = () => deleteNote(noteId);
-            document.getElementById('delete-note-btn').style.display = noteId ? 'block' : 'none';
-            
-            showModal('note-detail-modal');
+            view.innerHTML = `<div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">${isNew ? 'Create Note' : 'Edit Note'}</h2><button id="close-note-view"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col"><textarea id="note-detail-textarea" class="w-full h-full flex-grow bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]">${note.content}</textarea></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-note-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition" style="display: ${isNew ? 'none': 'block'}">Delete</button><button id="save-note-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
+            lucide.createIcons();
+
+            document.getElementById('save-note-btn').onclick = () => saveNote(note.id);
+            document.getElementById('delete-note-btn').onclick = () => deleteNote(note.id);
+            document.getElementById('close-note-view').onclick = () => showView('notes-view');
+            showView('note-detail-view');
          }
 
          async function saveNote(noteId) {
@@ -1347,33 +1361,36 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
             } else {
                 await dbAction(NOTES_STORE, 'readwrite', store => store.add({ content: newContent, timestamp: Date.now() }));
             }
-
-            closeModal('note-detail-modal');
+            showView('notes-view');
             await renderNotes();
          }
 
          async function deleteNote(noteId) {
             await dbAction(NOTES_STORE, 'readwrite', store => store.delete(noteId));
-            closeModal('note-detail-modal');
+            showView('notes-view');
             await renderNotes();
          }
 
-         async function openProjectModal(projectId) {
+         async function openProjectView(projectId) {
             const project = await dbAction(PROJECTS_STORE, 'readonly', store => store.get(projectId));
             if (!project) return;
-            document.getElementById('project-detail-title-input').value = project.name;
-            document.getElementById('project-detail-desc').value = project.description || '';
-            const contentEl = document.getElementById('project-detail-tasks');
+            const view = document.getElementById('project-detail-view');
+            
+            view.innerHTML = `<div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><input id="project-detail-title-input" class="title-font text-xl bg-transparent focus:outline-none w-full" value="${project.name}"><button id="close-project-view"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col gap-4"><textarea id="project-detail-desc" placeholder="Add a description..." class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)] text-sm">${project.description || ''}</textarea><div id="project-detail-tasks" class="flex-grow overflow-y-auto space-y-2"></div></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-project-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete Project</button><button id="save-project-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
+            
+            const contentEl = view.querySelector('#project-detail-tasks');
             contentEl.innerHTML = project.tasks.map(t => `
                 <div class="flex items-center gap-2 text-sm p-2 rounded-md hover:bg-white/5">
                     <input type="checkbox" data-task-id="${t.id}" data-project-id="${projectId}" class="task-checkbox accent-[var(--accent)]" ${t.completed ? 'checked' : ''}>
                     <label class="${t.completed ? 'line-through text-[var(--text-secondary)]' : ''}">${t.text}</label>
                 </div>
             `).join('');
-            document.getElementById('save-project-btn').onclick = () => saveProject(projectId);
-            document.getElementById('delete-project-btn').onclick = () => deleteProject(projectId);
+
             lucide.createIcons();
-            showModal('project-detail-modal');
+            view.querySelector('#save-project-btn').onclick = () => saveProject(projectId);
+            view.querySelector('#delete-project-btn').onclick = () => deleteProject(projectId);
+            view.querySelector('#close-project-view').onclick = () => showView('projects-view');
+            showView('project-detail-view');
          }
 
          async function saveProject(projectId) {
@@ -1382,13 +1399,13 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
             project.name = document.getElementById('project-detail-title-input').value;
             project.description = document.getElementById('project-detail-desc').value;
             await dbAction(PROJECTS_STORE, 'readwrite', store => store.put(project));
-            closeModal('project-detail-modal');
+            showView('projects-view');
             await renderProjects();
          }
 
          async function deleteProject(projectId) {
             await dbAction(PROJECTS_STORE, 'readwrite', store => store.delete(projectId));
-            closeModal('project-detail-modal');
+            showView('projects-view');
             await renderProjects();
          }
 
@@ -1465,5 +1482,3 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
  	 </script> 
  </body> 
  </html>
-
-
