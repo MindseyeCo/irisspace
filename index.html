@@ -13,11 +13,11 @@
  	 <link rel="apple-touch-icon" href="https://placehold.co/192x192/0891b2/ffffff?text=IS"> 
 
  	 <script src="https://cdn.tailwindcss.com"></script> 
- 	 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script> 
+ 	 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
  	 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
  	 <script src="https://unpkg.com/lucide@0.378.0/dist/umd/lucide.js"></script> 
-     <script src="https://apis.google.com/js/api.js"></script>
-     <script src="https://accounts.google.com/gsi/client"></script>
+     <script src="https://apis.google.com/js/api.js" defer></script>
+     <script src="https://accounts.google.com/gsi/client" defer></script>
 
  	 <style> 
  		 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap'); 
@@ -38,6 +38,15 @@
  			 --font-body: 'Sora', sans-serif; 
  			 --font-title: 'Playfair Display', serif; 
  		 } 
+
+         body.light {
+            --bg-primary: #F0F2F5;
+            --bg-secondary: #FFFFFF;
+            --surface: #FFFFFF;
+            --text-primary: #1A202C;
+            --text-secondary: #718096;
+            --border-color: #E2E8F0;
+         }
  		 
  		 body { 
  			 font-family: var(--font-body); 
@@ -48,8 +57,7 @@
  		 } 
  		 
  		 #app-container { 
- 			 background: radial-gradient(circle at 50% 50%, #1a1a1a, #0a0a0a);
-             background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Cg fill-rule="evenodd"%3E%3Cg fill="%231c1c1c" fill-opacity="0.4"%3E%3Cpath d="M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+ 			 background: var(--bg-primary);
  		 } 
 
  		 .title-font { font-family: var(--font-title); } 
@@ -58,9 +66,13 @@
  			 backdrop-filter: blur(25px) saturate(150%); 
  			 -webkit-backdrop-filter: blur(25px) saturate(150%); 
  			 background-color: rgba(26, 26, 26, 0.7); 
- 			 border: 1px solid var(--border-color); 
+             border: 1px solid var(--border-color); 
  			 transition: all 0.3s ease; 
  		 } 
+         body.light .widget, body.light .modal-pane, body.light .timeline-item, body.light .calendar-day, body.light .day-detail-entry, body.light .chat-bubble, body.light .project-card, body.light .note-item, body.light .setting-card {
+            background-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+         }
  		 
  		 .page { animation: fadeIn 0.5s ease-out forwards; } 
  		 .page.hidden { display: none; } 
@@ -75,7 +87,7 @@
  		 @keyframes iconPress { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.85); } } 
  		 .anim-press { animation: iconPress 0.3s ease-in-out; } 
 
- 		 .sortable-ghost { opacity: 0.4; background: var(--surface); } 
+ 		 .sortable-ghost { opacity: 0.4; background: var(--surface); cursor: grabbing; } 
 
  		 ::-webkit-scrollbar { width: 5px; } 
  		 ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; } 
@@ -100,7 +112,8 @@
  		 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
  		 #ai-thinking-icon { animation: spin 1s linear infinite; } 
 
- 		 #ai-input { background-color: #101010; color: var(--text-primary); } 
+ 		 #ai-input { background-color: var(--bg-secondary); color: var(--text-primary); } 
+ 		 #ai-input.glow-text { text-shadow: var(--cyan-glow); color: var(--accent-light); }
  		 
  		 #ai-reply-popup {
             opacity: 0;
@@ -147,10 +160,14 @@
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--surface); transition: .4s; border-radius: 24px; border: 1px solid var(--border-color)}
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-secondary); transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(20px); background-color: black; }
+        input:checked + .slider:before { transform: translateX(20px); background-color: var(--bg-secondary); }
         
         .theme-swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
-        .theme-swatch.active { border-color: white; }
+        .theme-swatch.active { border-color: var(--text-primary); }
+
+        .mini-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .mini-calendar-day { display: flex; justify-content: center; align-items: center; font-size: 0.75rem; width: 24px; height: 24px; border-radius: 50%; }
+        .mini-calendar-day.is-today { background-color: var(--accent); color: black; font-weight: bold; }
  	 </style> 
  </head> 
  <body class="overflow-hidden"> 
@@ -159,17 +176,17 @@
  	 <div id="app-overlay" class="h-full w-full"> 
  		 <div id="app-wrapper" class="h-full w-full flex flex-col max-w-7xl mx-auto"> 
  			 <header class="w-full p-4 flex justify-between items-center z-20 flex-shrink-0"> 
- 				 <h1 class="title-font text-2xl font-bold text-white">Iris</h1> 
+ 				 <h1 class="title-font text-2xl font-bold text-[var(--text-primary)]">Iris</h1> 
  				 <div id="header-btns" class="flex items-center space-x-2"> 
-                     <button id="dynamic-add-btn" class="text-white bg-[var(--accent)] p-2 rounded-full transition-transform"><i data-lucide="plus"></i></button>
-                     <button id="settings-btn" data-view="settings-view" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="settings"></i></button>
- 					 <button id="widget-settings-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="layout-template"></i></button> 
- 					 <button id="search-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="search"></i></button> 
+                     <button id="dynamic-add-btn" class="text-black bg-[var(--accent)] p-2 rounded-full transition-transform"><i data-lucide="plus"></i></button>
+                     <button id="settings-btn" data-view="settings-view" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2 rounded-full transition-colors"><i data-lucide="settings"></i></button>
+ 					 <button id="widget-settings-btn" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2 rounded-full transition-colors"><i data-lucide="layout-template"></i></button> 
+ 					 <button id="search-btn" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2 rounded-full transition-colors"><i data-lucide="search"></i></button> 
  				 </div> 
  			 </header> 
 
  			 <main id="main-content" class="flex-grow p-4 overflow-y-auto relative"> 
- 				 <div id="homescreen-view" class="page h-full"><div id="widget-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div></div> 
+ 				 <div id="homescreen-view" class="page h-full"><div id="widget-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 min-h-[200px]"></div></div> 
  				 <div id="timeline-view" class="page hidden"><div id="timeline-container" class="space-y-4"></div></div> 
  				 <div id="projects-view" class="page hidden"><div id="projects-container" class="space-y-4"></div></div>
  				 <div id="notes-view" class="page hidden"><div id="notes-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div></div>
@@ -256,7 +273,7 @@
  				 setupSpeechRecognition(); 
                  handleClientLoad(); // Init Google Services
                  await applyTheme();
- 				 await refreshApp(); 
+ 				 setTimeout(refreshApp, 0); // Delay refresh to allow DOM to settle
  				 showView('homescreen-view'); 
                  setInterval(checkNotifications, 3600000); // Check every hour
  			 } catch (error) { console.error('Failed to initialize app:', error); } 
@@ -410,7 +427,13 @@
                  if (projectCard) openProjectView(parseInt(projectCard.dataset.projectId));
 
                  const closeModalBtn = e.target.closest('.close-modal-btn');
-                 if(closeModalBtn) closeModal(closeModalBtn.dataset.modal);
+                 if(closeModalBtn) {
+                    const modalId = closeModalBtn.dataset.modal;
+                    if (modalId === 'create-moment-modal') {
+                        resetCreateMomentModal();
+                    }
+                    closeModal(modalId);
+                 }
 
                  const searchResultItem = e.target.closest('.search-result-item');
                  if(searchResultItem) handleSearchResultClick(searchResultItem.dataset);
@@ -425,17 +448,49 @@
  			 document.getElementById('search-btn').addEventListener('click', () => { showModal('search-modal'); hapticFeedback('light'); document.getElementById('search-input').focus(); }); 
  			 document.getElementById('dynamic-add-btn').addEventListener('click', handleDynamicAdd);
  			 document.getElementById('widget-settings-btn').addEventListener('click', () => { showModal('widget-settings-modal'); populateWidgetModal(); hapticFeedback('light'); }); 
- 			 document.getElementById('modal-backdrop').addEventListener('click', () => { ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'widget-config-modal'].forEach(closeModal); }); 
+ 			 document.getElementById('modal-backdrop').addEventListener('click', () => { 
+                ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'widget-config-modal'].forEach(id => {
+                    if (id === 'create-moment-modal' && !document.getElementById(id).classList.contains('hidden')) {
+                         resetCreateMomentModal();
+                    }
+                    closeModal(id);
+                });
+             }); 
  			 
  			 document.getElementById('save-moment-btn').addEventListener('click', () => saveMoment()); 
  			 document.getElementById('moment-file-input').addEventListener('change', handleMomentFileSelect); 
  			 document.getElementById('record-audio-btn').addEventListener('click', toggleAudioRecording); 
  			 document.getElementById('save-widgets-btn').addEventListener('click', saveWidgetLayout); 
- 			 document.getElementById('ai-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') processCommand(e.target.value); }); 
+ 			 document.getElementById('ai-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') processCommand(e.target.value); });
+             document.getElementById('ai-input').addEventListener('input', (e) => {
+                const input = e.target;
+                const value = input.value.toLowerCase();
+                if (value.includes('create task') || value.includes('create project') || value.includes('create note')) {
+                    input.classList.add('glow-text');
+                } else {
+                    input.classList.remove('glow-text');
+                }
+             });
  			 document.getElementById('ai-send-btn').addEventListener('click', () => { processCommand(document.getElementById('ai-input').value); animateIcon(document.querySelector('#ai-send-btn i')); }); 
  			 document.getElementById('ai-file-input').addEventListener('change', handleAIFileSelect); 
  		 } 
  		 
+         function resetCreateMomentModal() {
+            document.getElementById('moment-text-input').value = '';
+            document.getElementById('moment-tags-input').value = '';
+            momentImageBlob = null;
+            audioBlob = null;
+            document.getElementById('moment-image-preview-container').innerHTML = '';
+            document.getElementById('moment-audio-preview-container').innerHTML = '';
+            const recordBtn = document.getElementById('record-audio-btn');
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            recordBtn.classList.remove('is-recording');
+            recordBtn.innerHTML = '<i data-lucide="mic" class="inline"></i> Record';
+            lucide.createIcons();
+        }
+
          // --- DYNAMIC ADD BUTTON HANDLER ---
          function handleDynamicAdd() {
             const addBtn = document.getElementById('dynamic-add-btn');
@@ -465,12 +520,10 @@
             container.innerHTML = `<h2 class="title-font text-3xl font-bold mb-6">Settings</h2>`;
             const notifPerm = 'Notification' in window ? Notification.permission : 'denied';
             const locPerm = localStorage.getItem('locationPermission') || 'prompt';
-            const googleToken = localStorage.getItem('google_token');
 
             const settings = [
                 { id: 'notifications', name: 'Task Reminders', desc: 'Get notified for tasks over 12 hours old.', status: notifPerm },
                 { id: 'location', name: 'Location Access', desc: 'Allow access to improve weather accuracy.', status: locPerm },
-                { id: 'google', name: 'Google Calendar', desc: googleToken ? 'Connected. Tasks will sync.' : 'Connect to sync tasks and events.', status: googleToken ? 'granted' : 'prompt' }
             ];
             
             let settingsHTML = settings.map((s, index) => {
@@ -488,16 +541,17 @@
                 </div>`;
             }).join('');
 
-            const themes = [ {name: 'Cyan', color: '#22D3EE'}, {name: 'Rose', color: '#F43F5E'}, {name: 'Amber', color: '#F59E0B'}, {name: 'Lime', color: '#84CC16'}];
-            const currentTheme = localStorage.getItem('themeColor') || '#22D3EE';
+            const themes = [ {name: 'Auto', color: 'auto'}, {name: 'Cyan', color: '#22D3EE'}, {name: 'Rose', color: '#F43F5E'}, {name: 'Amber', color: '#F59E0B'}, {name: 'Lime', color: '#84CC16'}];
+            const currentTheme = localStorage.getItem('themeColor') || 'auto';
             settingsHTML += `<div class="setting-card p-4 rounded-lg" style="animation-delay: ${settings.length * 50}ms">
                 <h3 class="font-semibold mb-3">Theme Color</h3>
                 <div class="flex items-center gap-4">
-                    ${themes.map(t => `<div class="theme-swatch ${currentTheme === t.color ? 'active' : ''}" data-color="${t.color}" style="background-color: ${t.color}"></div>`).join('')}
+                    ${themes.map(t => `<div title="${t.name}" class="theme-swatch ${currentTheme === t.color ? 'active' : ''}" data-color="${t.color}" style="background-color: ${t.color === 'auto' ? '#888' : t.color}">${t.color === 'auto' ? '<i data-lucide="sun-moon" class="w-4 h-4 text-white m-auto"></i>' : ''}</div>`).join('')}
                 </div>
             </div>`;
 
             container.innerHTML += settingsHTML;
+            lucide.createIcons();
 
             document.querySelectorAll('.permission-toggle').forEach(toggle => {
                 toggle.addEventListener('change', (e) => handlePermissionToggle(e.target.dataset.permissionType, e.target.checked));
@@ -527,12 +581,6 @@
                 } else {
                     localStorage.setItem('locationPermission', 'denied');
                 }
-            } else if (type === 'google') {
-                if (enabled) {
-                    handleAuthClick();
-                } else {
-                    handleSignoutClick();
-                }
             }
             await refreshApp();
          }
@@ -545,7 +593,20 @@
 
          async function applyTheme() {
             const color = localStorage.getItem('themeColor') || '#22D3EE';
-            document.documentElement.style.setProperty('--accent', color);
+            if (color === 'auto') {
+                const hour = new Date().getHours();
+                if (hour > 6 && hour < 19) { // Day time
+                    document.body.classList.remove('dark');
+                    document.body.classList.add('light');
+                } else { // Night time
+                    document.body.classList.remove('light');
+                    document.body.classList.add('dark');
+                }
+            } else {
+                 document.body.classList.remove('light');
+                 document.body.classList.add('dark');
+                 document.documentElement.style.setProperty('--accent', color);
+            }
          }
 
  		 // --- MOMENTS, MEDIA, CHAT --- 
@@ -600,12 +661,7 @@
             await dbAction(MOMENTS_STORE, 'readwrite', store => store.add(moment));
             
             if (!fromAI) {
-                textInput.value = '';
-                tagsInput.value = '';
-                momentImageBlob = null;
-                audioBlob = null;
-                document.getElementById('moment-image-preview-container').innerHTML = '';
-                document.getElementById('moment-audio-preview-container').innerHTML = '';
+                resetCreateMomentModal();
                 closeModal('create-moment-modal');
             }
             
@@ -626,7 +682,7 @@
  					 if (m.type === 'video') { mediaContent = `<video controls src="${mediaUrl}" class="mt-2 rounded-lg w-full"></video>`; icon = 'video'; } 
  					 if (m.type === 'audio') { mediaContent = `<audio controls src="${mediaUrl}" class="w-full mt-2"></audio>`; icon = 'mic'; } 
  				 } 
- 				 const tagsHTML = m.tags && m.tags.length ? `<div class="flex flex-wrap gap-2 mt-3">${m.tags.map(t => `<span class="timeline-tag">${t}</span>`).join('')}</div>` : ''; 
+ 				 const tagsHTML = Array.isArray(m.tags) && m.tags.length ? `<div class="flex flex-wrap gap-2 mt-3">${m.tags.map(t => `<span class="timeline-tag">${t}</span>`).join('')}</div>` : ''; 
  				 const item = document.createElement('div'); 
  				 item.className = 'timeline-item p-4 rounded-lg relative'; 
  				 item.style.animationDelay = `${index * 50}ms`; 
@@ -754,8 +810,9 @@
                     <div class="flex-grow space-y-2 text-sm mt-2 overflow-y-auto pr-2">
                         ${taskListHTML}
                     </div>
-                    <div class="mt-2 flex-shrink-0">
-                        <input type="text" id="quick-add-task" placeholder="+ Add a task" class="w-full bg-transparent border-t border-[var(--border-color)]/50 pt-2 text-sm focus:outline-none">
+                    <div class="mt-2 flex-shrink-0 relative">
+                        <input type="text" id="quick-add-task" placeholder="+ Add a task" class="w-full bg-transparent border-t border-[var(--border-color)]/50 pt-2 text-sm focus:outline-none pr-8">
+                        <button id="quick-add-task-btn" class="absolute right-0 top-1/2 -translate-y-1/2 mt-1 p-1 text-[var(--text-secondary)] hover:text-[var(--accent)]"><i data-lucide="plus-circle" class="w-5 h-5"></i></button>
                     </div>
                 </div>`;
              }}, 
@@ -765,12 +822,13 @@
                 return `<div class="text-left w-full space-y-2 text-sm">
                     <h3 class="font-bold text-base mb-2">Active Projects</h3>
                     ${projects.slice(0,2).map(p => {
-                        const completedTasks = p.tasks.filter(t => t.completed).length;
-                        const progress = p.tasks.length > 0 ? (completedTasks / p.tasks.length) * 100 : 0;
+                        const tasks = Array.isArray(p.tasks) ? p.tasks : [];
+                        const completedTasks = tasks.filter(t => t.completed).length;
+                        const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
                         return `<div>
                             <div class="flex justify-between items-center mb-1">
                                 <p class="font-semibold">${p.name}</p>
-                                <p class="text-xs text-[var(--text-secondary)]">${completedTasks}/${p.tasks.length}</p>
+                                <p class="text-xs text-[var(--text-secondary)]">${completedTasks}/${tasks.length}</p>
                             </div>
                             <div class="w-full bg-black/20 rounded-full h-1.5"><div class="bg-[var(--accent)] h-1.5 rounded-full" style="width: ${progress}%"></div></div>
                         </div>`
@@ -779,12 +837,16 @@
              }},
  			 quickNote: { name: "Quick Note", size: 'col-span-2', render: async () => {
                 const note = await dbAction(QUICK_NOTES_STORE, 'readonly', store => store.get('main')) || {content: ''};
-                return `<textarea id="quick-note-textarea" class="w-full h-full bg-transparent text-sm p-2 focus:outline-none resize-none" placeholder="Jot something down...">${note.content}</textarea>`;
+                return `<div class="w-full h-full flex flex-col p-2">
+                    <textarea id="quick-note-textarea" class="w-full h-full bg-transparent text-sm focus:outline-none resize-none flex-grow" placeholder="Jot something down...">${note.content}</textarea>
+                    <button id="add-to-notes-btn" class="text-xs text-[var(--text-secondary)] hover:text-[var(--accent)] p-1 mt-1 flex items-center gap-1 self-end"><i data-lucide="file-plus-2" class="w-3 h-3"></i> Add to Notes</button>
+                </div>`;
              }},
              dailyFocus: { name: "Daily Focus", render: async () => {
                 const focus = await dbAction(SETTINGS_STORE, 'readonly', store => store.get('dailyFocus')) || { text: '' };
                 return `<input type="text" id="daily-focus-input" value="${focus.text}" placeholder="What's your focus today?" class="w-full bg-transparent text-center font-semibold text-lg focus:outline-none">`;
              }},
+             calendarPreview: { name: "Calendar Preview", size: 'col-span-2', render: () => renderMiniCalendar() },
  		 }; 
           async function getWeatherData() {
             const OPENWEATHER_API_KEY = 'a5a2eab3f48a1b504990e5d0a133e9b0';
@@ -810,14 +872,14 @@
  			 const grid = document.getElementById('widget-grid'); 
  			 grid.innerHTML = ''; 
  			 const widgetLayout = await dbAction(WIDGET_STORE, 'readonly', store => store.get('layout')); 
- 			 let userWidgets = widgetLayout?.value || ['tasks', 'weather', 'irisBrief', 'projects']; 
+ 			 let userWidgets = widgetLayout?.value || ['tasks', 'weather', 'dailyFocus', 'projects', 'irisBrief', 'quickNote', 'calendarPreview', 'clock']; 
  			 
  			 const renderPromises = userWidgets.map(async (widgetId, index) => { 
  				 const widgetDef = ALL_WIDGETS[widgetId]; 
  				 if (!widgetDef) return null; 
  				 const widgetEl = document.createElement('div'); 
  				 widgetEl.className = `widget p-4 rounded-lg min-h-[120px] flex items-center justify-center text-center relative ${widgetDef.size || 'col-span-1'}`; 
- 				 if (widgetId === 'media' || widgetId === 'notesGrid') widgetEl.className += ' p-2'; 
+ 				 if (['quickNote', 'calendarPreview'].includes(widgetId)) widgetEl.className = widgetEl.className.replace('p-4', 'p-2'); 
  				 widgetEl.dataset.widgetId = widgetId; 
  				 widgetEl.style.animationDelay = `${index * 50}ms`; 
  				 
@@ -831,23 +893,39 @@
 
  			 lucide.createIcons(); 
              const quickAddInput = document.getElementById('quick-add-task');
-             if(quickAddInput) {
-                quickAddInput.addEventListener('keypress', e => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                        createTask(e.target.value.trim());
-                        e.target.value = '';
+             const quickAddBtn = document.getElementById('quick-add-task-btn');
+             if(quickAddInput && quickAddBtn) {
+                const addTaskAction = () => {
+                    if (quickAddInput.value.trim()) {
+                        createTask(quickAddInput.value.trim());
+                        quickAddInput.value = '';
                     }
-                })
+                };
+                quickAddInput.addEventListener('keypress', e => { if (e.key === 'Enter') addTaskAction(); });
+                quickAddBtn.addEventListener('click', addTaskAction);
              }
              const dailyFocusInput = document.getElementById('daily-focus-input');
              if(dailyFocusInput) {
                 dailyFocusInput.addEventListener('blur', e => dbAction(SETTINGS_STORE, 'readwrite', store => store.put({ key: 'dailyFocus', text: e.target.value })))
              }
+             const addToNotesBtn = document.getElementById('add-to-notes-btn');
+             if(addToNotesBtn) {
+                addToNotesBtn.addEventListener('click', async () => {
+                    const quickNoteArea = document.getElementById('quick-note-textarea');
+                    const content = quickNoteArea.value;
+                    if(content) {
+                        await createGridNote(content);
+                        quickNoteArea.value = '';
+                        await dbAction(QUICK_NOTES_STORE, 'readwrite', store => store.put({ id: 'main', content: ''}));
+                        showAIReply('Note saved!');
+                    }
+                });
+             }
  		 } 
  		 async function toggleTaskCompletion(taskId, isCompleted, projectId = null) {
             if (projectId) {
                 const project = await dbAction(PROJECTS_STORE, 'readonly', store => store.get(parseInt(projectId)));
-                if (project) {
+                if (project && Array.isArray(project.tasks)) {
                     const task = project.tasks.find(t => t.id === taskId);
                     if(task) task.completed = isCompleted;
                     await dbAction(PROJECTS_STORE, 'readwrite', store => store.put(project));
@@ -867,17 +945,20 @@
  			 activeList.innerHTML = '';  
  			 availableList.innerHTML = ''; 
  			 const widgetLayout = await dbAction(WIDGET_STORE, 'readonly', store => store.get('layout')); 
- 			 const userWidgets = widgetLayout?.value || ['tasks', 'weather', 'irisBrief', 'projects']; 
+ 			 const userWidgets = widgetLayout?.value || ['tasks', 'weather', 'dailyFocus', 'projects', 'irisBrief', 'quickNote', 'calendarPreview', 'clock']; 
  			 Object.keys(ALL_WIDGETS).forEach(id => { 
  				 const item = document.createElement('div'); 
- 				 item.className = 'p-2 bg-[var(--surface)] rounded cursor-move'; 
+ 				 item.className = 'p-2 bg-[var(--surface)] rounded flex justify-between items-center'; 
  				 item.textContent = ALL_WIDGETS[id].name; 
  				 item.dataset.widgetId = id; 
- 				 if (userWidgets.includes(id)) activeList.appendChild(item); 
- 				 else availableList.appendChild(item); 
+ 				 if (userWidgets.includes(id)) {
+                    activeList.appendChild(item);
+                 } else {
+                    availableList.appendChild(item);
+                 }
  			 }); 
- 			 Sortable.create(activeList, { group: 'widgets', animation: 150, ghostClass: 'sortable-ghost' }); 
- 			 Sortable.create(availableList, { group: 'widgets', animation: 150, ghostClass: 'sortable-ghost' }); 
+             new Sortable(activeList, { group: 'widgets', animation: 150, ghostClass: 'sortable-ghost' });
+             new Sortable(availableList, { group: 'widgets', animation: 150, ghostClass: 'sortable-ghost' });
  		 } 
  		 async function saveWidgetLayout() { 
             const activeList = document.getElementById('active-widgets-list');
@@ -1028,7 +1109,7 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
  				 console.error("Error processing AI command:", error); 
  				 showAIReply("Sorry, I had trouble with that request."); 
  			 } finally { 
- 				 aiInput.value = ''; aiInput.disabled = false; aiInput.placeholder = "Talk to Iris..."; 
+ 				 aiInput.value = ''; aiInput.disabled = false; aiInput.placeholder = "Talk to Iris..."; aiInput.classList.remove('glow-text');
  				 aiInputContainer.classList.remove('is-thinking'); 
  				 document.getElementById('ai-image-preview-container').innerHTML = ''; 
  				 aiImageBase64 = null; aiImageMimeType = null; 
@@ -1069,7 +1150,7 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
                     break;
                  case 'clarification':
                     if (details?.question) {
-                        pendingAICommand = userQuery;
+                        pendingAICommand = { intent: intent, text: userQuery };
                         showAIReply(details.question, { quickReplies: details.quick_replies || ['Yes', 'No'] });
                     }
                     break;
@@ -1102,7 +1183,7 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
  		 } 
           async function handleQuickReply(reply) {
             if (!pendingAICommand) return;
-            const fullCommand = `${pendingAICommand} (User's answer: ${reply})`;
+            const fullCommand = `${pendingAICommand.text}. The user replied: ${reply}`;
             document.getElementById('ai-reply-popup').classList.remove('is-visible');
             pendingAICommand = null;
             await processCommand(fullCommand);
@@ -1220,8 +1301,9 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
                 return;
             }
             projects.forEach((p, index) => {
-                const completedTasks = p.tasks.filter(t => t.completed).length;
-                const progress = p.tasks.length > 0 ? (completedTasks / p.tasks.length) * 100 : 0;
+                const tasks = Array.isArray(p.tasks) ? p.tasks : [];
+                const completedTasks = tasks.filter(t => t.completed).length;
+                const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
                 const card = document.createElement('div');
                 card.className = 'project-card p-4 rounded-lg';
                 card.dataset.projectId = p.id;
@@ -1378,8 +1460,9 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
             
             view.innerHTML = `<div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><input id="project-detail-title-input" class="title-font text-xl bg-transparent focus:outline-none w-full" value="${project.name}"><button id="close-project-view"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col gap-4"><textarea id="project-detail-desc" placeholder="Add a description..." class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)] text-sm">${project.description || ''}</textarea><div id="project-detail-tasks" class="flex-grow overflow-y-auto space-y-2"></div></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-project-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete Project</button><button id="save-project-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
             
+            const tasks = Array.isArray(project.tasks) ? project.tasks : [];
             const contentEl = view.querySelector('#project-detail-tasks');
-            contentEl.innerHTML = project.tasks.map(t => `
+            contentEl.innerHTML = tasks.map(t => `
                 <div class="flex items-center gap-2 text-sm p-2 rounded-md hover:bg-white/5">
                     <input type="checkbox" data-task-id="${t.id}" data-project-id="${projectId}" class="task-checkbox accent-[var(--accent)]" ${t.completed ? 'checked' : ''}>
                     <label class="${t.completed ? 'line-through text-[var(--text-secondary)]' : ''}">${t.text}</label>
@@ -1408,6 +1491,33 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
             showView('projects-view');
             await renderProjects();
          }
+
+        function renderMiniCalendar() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const today = now.getDate();
+            const monthName = now.toLocaleString('default', { month: 'long' });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let headerHTML = `<div class="text-sm font-semibold mb-2">${monthName} ${year}</div>`;
+            let gridHTML = '<div class="mini-calendar-grid">';
+            
+            // Add padding for the first day
+            for (let i = 0; i < firstDay; i++) {
+                gridHTML += `<div></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isTodayClass = day === today ? 'is-today' : '';
+                gridHTML += `<div class="mini-calendar-day ${isTodayClass}">${day}</div>`;
+            }
+            gridHTML += '</div>';
+
+            return `<div class="w-full text-center">${headerHTML}${gridHTML}</div>`;
+        }
 
          // --- GOOGLE CALENDAR INTEGRATION ---
          function handleClientLoad() {
@@ -1482,3 +1592,4 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
  	 </script> 
  </body> 
  </html>
+
