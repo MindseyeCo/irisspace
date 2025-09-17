@@ -64,7 +64,6 @@
  		 .page.hidden { display: none; } 
  		 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } 
 
- 		 /* Animations */ 
  		 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } } 
  		 .modal-pane, .chat-bubble { animation: scaleIn 0.4s ease-out forwards; } 
 
@@ -125,15 +124,6 @@
             color: var(--accent);
          }
 
-
- 		 #calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; } 
- 		 .calendar-day { min-height: 100px; padding: 8px; border-radius: 8px; cursor: pointer; position: relative; } 
- 		 .calendar-day:hover { border-color: var(--accent-light); } 
- 		 .calendar-day.is-today { border-color: var(--accent); box-shadow: var(--cyan-glow); } 
- 		 .calendar-day-number { font-weight: 600; } 
- 		 .calendar-moment-dots { position: absolute; bottom: 8px; left: 8px; display: flex; gap: 4px; } 
- 		 .calendar-moment-dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent); } 
-
  		 .timeline-tag { background-color: var(--surface); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; } 
  		 .chat-bubble { max-width: 80%; width: fit-content; padding: 10px 15px; border-radius: 20px; } 
  		 .user-bubble { background-color: var(--accent); color: black; margin-left: auto; border-bottom-right-radius: 5px; } 
@@ -148,7 +138,9 @@
          .note-item { cursor: pointer; }
          .project-card { cursor: pointer; }
 
-         /* Settings Toggle Switch */
+         #dynamic-add-btn { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* Settings Toggle Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--surface); transition: .4s; border-radius: 24px; border: 1px solid var(--border-color)}
@@ -165,8 +157,9 @@
  		 <div id="app-wrapper" class="h-full w-full flex flex-col max-w-7xl mx-auto"> 
  			 <header class="w-full p-4 flex justify-between items-center z-20 flex-shrink-0"> 
  				 <h1 class="title-font text-2xl font-bold text-white">Iris</h1> 
- 				 <div class="flex items-center space-x-2"> 
-                     <button id="settings-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="settings"></i></button>
+ 				 <div id="header-btns" class="flex items-center space-x-2"> 
+                     <button id="dynamic-add-btn" class="text-white bg-[var(--accent)] p-2 rounded-full transition-transform"><i data-lucide="plus"></i></button>
+                     <button id="settings-btn" data-view="settings-view" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="settings"></i></button>
  					 <button id="widget-settings-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="layout-template"></i></button> 
  					 <button id="search-btn" class="text-[var(--text-secondary)] hover:text-white p-2 rounded-full transition-colors"><i data-lucide="search"></i></button> 
  				 </div> 
@@ -213,10 +206,6 @@
  			 </footer> 
  		 </div> 
  		 
- 		 <button id="create-moment-btn" class="fixed bottom-24 right-5 z-30 p-4 bg-[var(--accent)] text-black rounded-full shadow-[var(--cyan-glow)] hover:bg-cyan-200 transform hover:scale-110 transition-all duration-300"> 
- 			 <i data-lucide="plus" class="w-8 h-8"></i> 
- 		 </button> 
-
  		 <div id="modal-backdrop" class="hidden fixed inset-0 bg-black/60 z-40"></div> 
  		 
  		 <div id="ai-reply-popup" class="fixed bottom-36 left-1/2 w-full max-w-sm p-4 z-[100] -translate-x-1/2"> 
@@ -244,10 +233,11 @@
  	 <script type="module"> 
  		 // --- INITIALIZATION --- 
  		 const { jsPDF } = window.jspdf; 
- 		 const DB_NAME = 'IrisSpaceDB', DB_VERSION = 9; 
+ 		 const DB_NAME = 'IrisSpaceDB', DB_VERSION = 10; 
  		 const MOMENTS_STORE = 'moments', WIDGET_STORE = 'widgets', SETTINGS_STORE = 'settings', TASKS_STORE = 'tasks', CHAT_HISTORY_STORE = 'chatHistory', PROJECTS_STORE = 'projects', NOTES_STORE = 'notes'; 
  		 const GEMINI_API_KEY = "AIzaSyAnmS4y8qRL-bquwc6FZbZ6OZFqrADgwx0";
  		 let db, aiImageBase64 = null, aiImageMimeType = null, currentCalendarDate = new Date(), pendingAICommand = null; 
+ 		 let conversationHistory = [];
  		 
  		 window.onload = async () => { 
  			 lucide.createIcons(); 
@@ -283,7 +273,10 @@
                         taskStore.createIndex('createdAt', 'createdAt', { unique: false });
                      }
  					 if (!db.objectStoreNames.contains(CHAT_HISTORY_STORE)) db.createObjectStore(CHAT_HISTORY_STORE, { keyPath: 'id', autoIncrement: true }); 
-                     if (!db.objectStoreNames.contains(PROJECTS_STORE)) db.createObjectStore(PROJECTS_STORE, { keyPath: 'id', autoIncrement: true });
+                     if (!db.objectStoreNames.contains(PROJECTS_STORE)) {
+                        const projectStore = db.createObjectStore(PROJECTS_STORE, { keyPath: 'id', autoIncrement: true });
+                        projectStore.createIndex('name', 'name', { unique: false });
+                     }
                      if (!db.objectStoreNames.contains(NOTES_STORE)) db.createObjectStore(NOTES_STORE, { keyPath: 'id', autoIncrement: true });
  				 }; 
  			 }); 
@@ -300,7 +293,8 @@
  		 async function refreshApp() { 
  			 await Promise.all([renderWidgets(), renderTimeline(), renderProjects(), renderNotes(), renderChatHistory(), renderSettings()]); 
  		 } 
- 		 function showView(viewId) { 
+ 		 function showView(viewId) {
+            const addBtn = document.getElementById('dynamic-add-btn');
  			 document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); 
  			 const view = document.getElementById(viewId);
              if (view) view.classList.remove('hidden'); 
@@ -310,7 +304,15 @@
              document.querySelectorAll('#header-btns button').forEach(btn => {
                 btn.classList.toggle('text-[var(--accent)]', btn.dataset.view === viewId);
              });
- 			 if (viewId === 'calendar-view') renderCalendar(currentCalendarDate); 
+             addBtn.style.transform = 'rotate(0deg)';
+             let icon = 'plus';
+             switch(viewId) {
+                case 'timeline-view': icon = 'pen-square'; break;
+                case 'projects-view': icon = 'folder-plus'; break;
+                case 'notes-view': icon = 'file-plus-2'; break;
+             }
+             addBtn.innerHTML = `<i data-lucide="${icon}"></i>`;
+             lucide.createIcons();
  		 } 
  		 function animateIcon(element) { if (!element) return; hapticFeedback('light'); element.classList.add('anim-press'); element.addEventListener('animationend', () => element.classList.remove('anim-press'), { once: true }); } 
  		 function showModal(id) { document.getElementById('modal-backdrop').classList.remove('hidden'); document.getElementById(id).classList.remove('hidden'); } 
@@ -336,7 +338,7 @@
             let quickReplyHTML = '';
             if (quickReplies.length > 0) {
                 quickReplyHTML = `<div class="mt-3 flex justify-end gap-2">
-                    ${quickReplies.map(reply => `<button class="quick-reply-btn text-xs px-3 py-1 rounded-full" data-reply="${reply}">${reply}</button>`).join('')}
+                    ${quickReplies.slice(0, 2).map(reply => `<button class="quick-reply-btn text-xs px-3 py-1 rounded-full" data-reply="${reply}">${reply}</button>`).join('')}
                 </div>`;
             }
 
@@ -359,31 +361,7 @@
                 });
             } else {
                 replyTimeout = setTimeout(() => {
-                    if (animateToChat) {
-                        const chatBtn = document.getElementById('footer-chat-btn');
-                        if (!chatBtn) { popup.classList.remove('is-visible'); return; }
-
-                        const popupRect = popup.getBoundingClientRect();
-                        const btnRect = chatBtn.getBoundingClientRect();
-
-                        const translateX = btnRect.left + (btnRect.width / 2) - (popupRect.left + (popupRect.width / 2));
-                        const translateY = btnRect.top + (btnRect.height / 2) - (popupRect.top + (popupRect.height / 2));
-                        
-                        popup.classList.add('is-flying');
-                        popup.style.transform = `translateX(calc(-50% + ${translateX}px)) translateY(${translateY}px) scale(0.1)`;
-                        popup.style.opacity = '0';
-
-                        animateIcon(chatBtn.querySelector('i'));
-
-                        popup.addEventListener('transitionend', () => {
-                            popup.classList.remove('is-visible', 'is-flying');
-                            popup.style.transform = '';
-                            popup.style.opacity = '';
-                        }, { once: true });
-
-                    } else {
-                        popup.classList.remove('is-visible');
-                    }
+                    popup.classList.remove('is-visible');
                 }, 4000);
             }
         }
@@ -395,8 +373,8 @@
  			 document.getElementById('widget-settings-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Manage Widgets</h2><button class="close-modal-btn p-1" data-modal="widget-settings-modal"><i data-lucide="x"></i></button></div><div class="flex-grow overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4"><div><h3 class="font-semibold mb-2">Active Widgets</h3><div id="active-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div><div><h3 class="font-semibold mb-2">Available Widgets</h3><div id="available-widgets-list" class="min-h-[200px] bg-[var(--bg-secondary)] p-2 rounded-md space-y-2"></div></div></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widgets-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save & Close</button></div></div>`; 
  			 document.getElementById('day-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl max-h-[80vh] rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="day-detail-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="day-detail-modal"><i data-lucide="x"></i></button></div><div id="day-detail-content" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`; 
  			 document.getElementById('widget-config-modal').innerHTML = `<div class="modal-pane w-full max-w-md rounded-lg flex flex-col"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="widget-config-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="widget-config-modal"><i data-lucide="x"></i></button></div><div id="widget-config-content" class="p-4 space-y-4"></div><div class="p-4 border-t border-[var(--border-color)] text-right"><button id="save-widget-config-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save</button></div></div>`; 
- 			 document.getElementById('note-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 class="title-font text-xl">Edit Note</h2><button class="close-modal-btn p-1" data-modal="note-detail-modal"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col"><textarea id="note-detail-textarea" class="w-full h-full flex-grow bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-note-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete</button><button id="save-note-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
-             document.getElementById('project-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="project-detail-title" class="title-font text-xl"></h2><button class="close-modal-btn p-1" data-modal="project-detail-modal"><i data-lucide="x"></i></button></div><div id="project-detail-content" class="flex-grow overflow-y-auto p-4 space-y-3"></div></div>`;
+ 			 document.getElementById('note-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><h2 id="note-detail-title" class="title-font text-xl">Note</h2><button class="close-modal-btn p-1" data-modal="note-detail-modal"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col"><textarea id="note-detail-textarea" class="w-full h-full flex-grow bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)]"></textarea></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-note-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete</button><button id="save-note-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
+             document.getElementById('project-detail-modal').innerHTML = `<div class="modal-pane w-full max-w-2xl rounded-lg flex flex-col max-h-[80vh]"><div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center"><input id="project-detail-title-input" class="title-font text-xl bg-transparent focus:outline-none w-full" value="Project Title"><button class="close-modal-btn p-1" data-modal="project-detail-modal"><i data-lucide="x"></i></button></div><div class="p-4 flex-grow flex flex-col gap-4"><textarea id="project-detail-desc" placeholder="Add a description..." class="w-full h-24 bg-transparent p-2 rounded border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent)] text-sm"></textarea><div id="project-detail-tasks" class="flex-grow overflow-y-auto space-y-2"></div></div><div class="p-4 border-t border-[var(--border-color)] flex justify-between"><button id="delete-project-btn" class="px-4 py-2 text-red-400 rounded font-semibold hover:bg-red-400/10 transition">Delete Project</button><button id="save-project-btn" class="px-4 py-2 bg-[var(--accent)] text-black rounded font-semibold hover:opacity-80 transition">Save Changes</button></div></div>`;
              lucide.createIcons(); 
  		 } 
  		 
@@ -412,7 +390,7 @@
  				 const taskCheckbox = e.target.closest('.task-checkbox');  
  				 if(taskCheckbox) {
                     const taskId = parseInt(taskCheckbox.dataset.taskId);
-                    const projectId = taskCheckbox.dataset.projectId; // This will be undefined for non-project tasks
+                    const projectId = taskCheckbox.dataset.projectId;
                     toggleTaskCompletion(taskId, taskCheckbox.checked, projectId);
                  }
 
@@ -433,7 +411,7 @@
 
  			 document.getElementById('settings-btn').addEventListener('click', () => showView('settings-view')); 
  			 document.getElementById('search-btn').addEventListener('click', () => { showModal('search-modal'); hapticFeedback('light'); document.getElementById('search-input').focus(); }); 
- 			 document.getElementById('create-moment-btn').addEventListener('click', () => { showModal('create-moment-modal'); hapticFeedback('medium'); }); 
+ 			 document.getElementById('dynamic-add-btn').addEventListener('click', handleDynamicAdd);
  			 document.getElementById('widget-settings-btn').addEventListener('click', () => { showModal('widget-settings-modal'); populateWidgetModal(); hapticFeedback('light'); }); 
  			 document.getElementById('modal-backdrop').addEventListener('click', () => { ['search-modal', 'create-moment-modal', 'widget-settings-modal', 'day-detail-modal', 'widget-config-modal', 'note-detail-modal', 'project-detail-modal'].forEach(closeModal); }); 
  			 
@@ -445,6 +423,29 @@
  			 document.getElementById('ai-send-btn').addEventListener('click', () => { processCommand(document.getElementById('ai-input').value); animateIcon(document.querySelector('#ai-send-btn i')); }); 
  			 document.getElementById('ai-file-input').addEventListener('change', handleAIFileSelect); 
  		 } 
+ 		 
+         // --- DYNAMIC ADD BUTTON HANDLER ---
+         function handleDynamicAdd() {
+            const addBtn = document.getElementById('dynamic-add-btn');
+            addBtn.style.transform = 'rotate(90deg)';
+            setTimeout(() => addBtn.style.transform = 'rotate(0deg)', 400);
+
+            const currentView = document.querySelector('.page:not(.hidden)').id;
+            switch(currentView) {
+                case 'notes-view':
+                    openNoteModal(null); // Open modal for new note
+                    break;
+                case 'projects-view':
+                    document.getElementById('ai-input').focus();
+                    showAIReply("What should I name the new project?");
+                    break;
+                case 'timeline-view':
+                case 'homescreen-view':
+                default:
+                    showModal('create-moment-modal');
+                    break;
+            }
+         }
 
  		 // --- PERMISSIONS & SETTINGS ---
          async function renderSettings() {
@@ -618,6 +619,9 @@
  		 async function saveToChatHistory(userQuery, aiResponse) { 
  			 const entry = { timestamp: Date.now(), userQuery, aiResponse }; 
  			 await dbAction(CHAT_HISTORY_STORE, 'readwrite', store => store.add(entry)); 
+             conversationHistory.push({ role: 'user', parts: [{ text: userQuery }] });
+             conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
+             if (conversationHistory.length > 4) conversationHistory = conversationHistory.slice(-4);
  			 await renderChatHistory(); 
  		 } 
  		 async function renderChatHistory() { 
@@ -906,16 +910,20 @@ Intents:
 - 'create_note': For timeline entries. 'details' contains 'full_response' and a 'short_reply'.
 - 'create_grid_note': For grid notes. 'details' contains 'full_response' and a 'short_reply'.
 - 'create_project': For new projects. 'details' contains the 'name' of the project and a 'short_reply'.
+- 'edit_project': For adding details to a project. 'details' contains 'name' and 'description'.
 - 'general_query': For questions. 'details' contains 'full_response' and a 'short_reply'.
-- 'clarification': If the user's request is ambiguous. 'details' contains a 'question' and an array of 'quick_replies'.
+- 'clarification': If the user's request is ambiguous. 'details' contains a 'question' and an array of up to 2 'quick_replies'.
 - Other intents: 'set_reminder', 'set_countdown', 'export_data', 'add_task_to_project'.
+
+Context from previous turn (if any):
+${conversationHistory.map(h => `${h.role}: ${h.parts[0].text}`).join('\n')}
 
 Examples:
 - User: "remind me to take out the trash at 5pm" -> {"intent": "set_reminder", "details": {"text": "take out the trash", "time": "17:00", "short_reply": "Reminder set for 5pm."}}
 - User: "add buy milk and walk the dog to my list" -> {"intent": "create_task", "details": {"tasks": ["buy milk", "walk the dog"], "short_reply": "I've added 2 tasks."}}
 - User: "create a project for the new marketing campaign" -> {"intent": "create_project", "details": {"name": "New Marketing Campaign", "short_reply": "Project 'New Marketing Campaign' created."}}
+- User: "add a description to the marketing campaign project" -> {"intent": "clarification", "details": {"question": "What should the description be?", "quick_replies": []}}
 - User: "make a note that we should focus on video content" -> {"intent": "create_grid_note", "details": {"full_response": "Focus on video content for the next quarter.", "short_reply": "I've added that to your notes."}}
-- User: "was that meeting at 5 or 6?" -> {"intent": "clarification", "details": {"question": "Just to confirm, are you asking about the project sync meeting?", "quick_replies": ["Yes, that's the one", "No, a different meeting"]}}
 
 Respond ONLY with the JSON object. Do not add any text before or after the JSON object.`;
  
@@ -967,6 +975,8 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
                 return;
              }
              const { intent, details } = response;
+             const isAction = ['create_task', 'delete_task', 'set_reminder', 'create_note', 'create_grid_note', 'create_project', 'edit_project', 'set_countdown', 'export_data', 'add_task_to_project'].includes(intent);
+
  			 switch (intent) { 
  				 case 'create_task': 
                     if (details?.tasks && details.tasks.length > 0) { 
@@ -989,12 +999,12 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
  				 case 'general_query': 
                     const aiResponseText = details?.full_response || "I'm not sure how to respond.";
                     saveToChatHistory(userQuery, aiResponseText); 
-                    const shortReply = details?.short_reply || "I've added my response to our chat.";
-                    showAIReply(shortReply, { animateToChat: true });
+                    if (conversationHistory.length < 2) showAIReply(details.short_reply || "I've added my response to our chat.", { animateToChat: true });
+                    showView('chat-view');
                     break;
                  case 'clarification':
                     if (details?.question) {
-                        pendingAICommand = userQuery; // Save original command
+                        pendingAICommand = userQuery;
                         showAIReply(details.question, { quickReplies: details.quick_replies || ['Yes', 'No'] });
                     }
                     break;
@@ -1007,6 +1017,10 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
                     if (details?.name) { createProject(details.name); showAIReply(details.short_reply || `Project "${details.name}" created.`);}
                     else { showAIReply("What should I name the project?"); }
                     break;
+                 case 'edit_project':
+                    if (details?.name && details?.description) { editProject(details.name, details.description); }
+                    else { showAIReply("I need a project name and a description to add."); }
+                    break;
                  case 'add_task_to_project':
                     if (details?.projectName && details?.taskText) { addTaskToProject(details.projectName, details.taskText); }
                     else { showAIReply("I need a project name and a task to add."); }
@@ -1016,13 +1030,16 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
                     else { showAIReply("What should the note say?"); }
                     break;
  				 default: showAIReply("I didn't understand that command."); 
- 			 } 
+ 			 }
+             if (isAction) {
+                conversationHistory = []; // Reset context after a clear action
+             }
  		 } 
           async function handleQuickReply(reply) {
             if (!pendingAICommand) return;
             const fullCommand = `${pendingAICommand} (User's answer: ${reply})`;
             document.getElementById('ai-reply-popup').classList.remove('is-visible');
-            pendingAICommand = null; // Clear pending command
+            pendingAICommand = null;
             await processCommand(fullCommand);
         }
  		 async function setReminder(text, timeStr) { 
@@ -1149,7 +1166,8 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
                         <h3 class="font-bold text-lg">${p.name}</h3>
                         <span class="text-sm font-semibold">${Math.round(progress)}%</span>
                     </div>
-                    <div class="w-full bg-black/20 rounded-full h-2 my-3"><div class="bg-[var(--accent)] h-2 rounded-full" style="width: ${progress}%"></div></div>
+                    <p class="text-xs text-[var(--text-secondary)] mt-1 mb-3 truncate">${p.description || 'No description'}</p>
+                    <div class="w-full bg-black/20 rounded-full h-2 "><div class="bg-[var(--accent)] h-2 rounded-full" style="width: ${progress}%"></div></div>
                 `;
                 container.appendChild(card);
             });
@@ -1177,9 +1195,22 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
         }
 
         async function createProject(name) {
-            await dbAction(PROJECTS_STORE, 'readwrite', store => store.add({ name, tasks: [] }));
+            await dbAction(PROJECTS_STORE, 'readwrite', store => store.add({ name, description: '', tasks: [] }));
             await refreshApp();
             showView('projects-view');
+        }
+
+        async function editProject(projectName, description) {
+            const projects = await dbAction(PROJECTS_STORE, 'readonly', store => store.getAll());
+            const project = projects.find(p => p.name.toLowerCase() === projectName.toLowerCase());
+            if(project) {
+                project.description = description;
+                await dbAction(PROJECTS_STORE, 'readwrite', store => store.put(project));
+                await refreshApp();
+                showAIReply(`Updated description for "${projectName}".`);
+            } else {
+                showAIReply(`I couldn't find a project named "${projectName}".`);
+            }
         }
 
         async function addTaskToProject(projectName, taskText) {
@@ -1232,23 +1263,36 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
          }
 
          async function openNoteModal(noteId) {
-            const note = await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId));
+            const titleEl = document.getElementById('note-detail-title');
+            titleEl.textContent = noteId ? "Edit Note" : "Create Note";
+
+            const note = noteId ? await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId)) : { content: '' };
             if (!note) return;
+
             document.getElementById('note-detail-textarea').value = note.content;
             document.getElementById('save-note-btn').onclick = () => saveNote(noteId);
             document.getElementById('delete-note-btn').onclick = () => deleteNote(noteId);
+            document.getElementById('delete-note-btn').style.display = noteId ? 'block' : 'none';
+            
             showModal('note-detail-modal');
          }
 
          async function saveNote(noteId) {
             const newContent = document.getElementById('note-detail-textarea').value;
-            const note = await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId));
-            if(note) {
-                const updatedNote = { ...note, content: newContent };
-                await dbAction(NOTES_STORE, 'readwrite', store => store.put(updatedNote));
-                closeModal('note-detail-modal');
-                await renderNotes();
+            if (!newContent) return;
+
+            if (noteId) {
+                const note = await dbAction(NOTES_STORE, 'readonly', store => store.get(noteId));
+                if(note) {
+                    const updatedNote = { ...note, content: newContent };
+                    await dbAction(NOTES_STORE, 'readwrite', store => store.put(updatedNote));
+                }
+            } else {
+                await dbAction(NOTES_STORE, 'readwrite', store => store.add({ content: newContent, timestamp: Date.now() }));
             }
+
+            closeModal('note-detail-modal');
+            await renderNotes();
          }
 
          async function deleteNote(noteId) {
@@ -1260,18 +1304,36 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
          async function openProjectModal(projectId) {
             const project = await dbAction(PROJECTS_STORE, 'readonly', store => store.get(projectId));
             if (!project) return;
-            document.getElementById('project-detail-title').textContent = project.name;
-            const contentEl = document.getElementById('project-detail-content');
+            document.getElementById('project-detail-title-input').value = project.name;
+            document.getElementById('project-detail-desc').value = project.description || '';
+            const contentEl = document.getElementById('project-detail-tasks');
             contentEl.innerHTML = project.tasks.map(t => `
                 <div class="flex items-center gap-2 text-sm p-2 rounded-md hover:bg-white/5">
                     <input type="checkbox" data-task-id="${t.id}" data-project-id="${projectId}" class="task-checkbox accent-[var(--accent)]" ${t.completed ? 'checked' : ''}>
                     <label class="${t.completed ? 'line-through text-[var(--text-secondary)]' : ''}">${t.text}</label>
                 </div>
             `).join('');
+            document.getElementById('save-project-btn').onclick = () => saveProject(projectId);
+            document.getElementById('delete-project-btn').onclick = () => deleteProject(projectId);
             lucide.createIcons();
             showModal('project-detail-modal');
+         }
+
+         async function saveProject(projectId) {
+            const project = await dbAction(PROJECTS_STORE, 'readonly', store => store.get(projectId));
+            if (!project) return;
+            project.name = document.getElementById('project-detail-title-input').value;
+            project.description = document.getElementById('project-detail-desc').value;
+            await dbAction(PROJECTS_STORE, 'readwrite', store => store.put(project));
+            closeModal('project-detail-modal');
+            await renderProjects();
+         }
+
+         async function deleteProject(projectId) {
+            await dbAction(PROJECTS_STORE, 'readwrite', store => store.delete(projectId));
+            closeModal('project-detail-modal');
+            await renderProjects();
          }
  	 </script> 
  </body> 
  </html>
-
