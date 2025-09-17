@@ -198,12 +198,12 @@
  			 </div> 
 
  			 <footer class="w-full p-2 flex justify-center items-center z-20 flex-shrink-0"> 
-                <div class="flex items-center space-x-2 bg-black/30 backdrop-blur-md border border-[var(--border-color)] p-2 rounded-full">
- 				 <button data-view="homescreen-view" class="nav-btn active px-4 py-2 rounded-full flex items-center gap-2"><i data-lucide="layout-grid"></i><span>Home</span></button> 
- 				 <button data-view="timeline-view" class="nav-btn px-4 py-2 rounded-full flex items-center gap-2"><i data-lucide="list-ordered"></i><span>Timeline</span></button> 
- 				 <button data-view="projects-view" class="nav-btn px-4 py-2 rounded-full flex items-center gap-2"><i data-lucide="case-sensitive"></i><span>Projects</span></button> 
- 				 <button data-view="notes-view" class="nav-btn px-4 py-2 rounded-full flex items-center gap-2"><i data-lucide="notebook-tabs"></i><span>Notes</span></button> 
- 				 <button data-view="chat-view" id="footer-chat-btn" class="nav-btn px-4 py-2 rounded-full flex items-center gap-2"><i data-lucide="message-square"></i><span>Chat</span></button> 
+                <div class="flex items-center space-x-1 sm:space-x-2 bg-black/30 backdrop-blur-md border border-[var(--border-color)] p-1 sm:p-2 rounded-full">
+ 				 <button data-view="homescreen-view" class="nav-btn active p-2 sm:px-4 sm:py-2 rounded-full flex items-center"><i data-lucide="layout-grid"></i><span class="hidden sm:inline ml-2">Home</span></button> 
+ 				 <button data-view="timeline-view" class="nav-btn p-2 sm:px-4 sm:py-2 rounded-full flex items-center"><i data-lucide="list-ordered"></i><span class="hidden sm:inline ml-2">Timeline</span></button> 
+ 				 <button data-view="projects-view" class="nav-btn p-2 sm:px-4 sm:py-2 rounded-full flex items-center"><i data-lucide="case-sensitive"></i><span class="hidden sm:inline ml-2">Projects</span></button> 
+ 				 <button data-view="notes-view" class="nav-btn p-2 sm:px-4 sm:py-2 rounded-full flex items-center"><i data-lucide="notebook-tabs"></i><span class="hidden sm:inline ml-2">Notes</span></button> 
+ 				 <button data-view="chat-view" id="footer-chat-btn" class="nav-btn p-2 sm:px-4 sm:py-2 rounded-full flex items-center"><i data-lucide="message-square"></i><span class="hidden sm:inline ml-2">Chat</span></button> 
                 </div>
  			 </footer> 
  		 </div> 
@@ -433,7 +433,7 @@
  			 document.getElementById('close-widget-settings-modal').addEventListener('click', () => closeModal('widget-settings-modal')); 
  			 document.getElementById('close-widget-config-modal').addEventListener('click', () => closeModal('widget-config-modal')); 
 
- 			 document.getElementById('save-moment-btn').addEventListener('click', saveMoment); 
+ 			 document.getElementById('save-moment-btn').addEventListener('click', () => saveMoment()); 
  			 document.getElementById('moment-file-input').addEventListener('change', handleMomentFileSelect); 
  			 document.getElementById('record-audio-btn').addEventListener('click', toggleAudioRecording); 
  			 document.getElementById('save-widgets-btn').addEventListener('click', saveWidgetLayout); 
