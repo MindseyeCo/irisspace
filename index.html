@@ -273,7 +273,7 @@
  				 setupSpeechRecognition(); 
                  handleClientLoad(); // Init Google Services
                  await applyTheme();
- 				 setTimeout(refreshApp, 0); // Delay refresh to allow DOM to settle
+ 				 await refreshApp(); 
  				 showView('homescreen-view'); 
                  setInterval(checkNotifications, 3600000); // Check every hour
  			 } catch (error) { console.error('Failed to initialize app:', error); } 
@@ -1592,4 +1592,5 @@ Respond ONLY with the JSON object. Do not add any text before or after the JSON 
  	 </script> 
  </body> 
  </html>
+
 
